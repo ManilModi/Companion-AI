@@ -1,30 +1,24 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using DotnetMVCApp.Services;
-using MongoDB.Driver;
-using System.Collections.Generic;
+﻿//using Microsoft.AspNetCore.Mvc;
+////using DotnetMVCApp.Services;
+//using DotnetMVCApp.Models;
+//using System.Linq;
+//using MongoDB.Driver;
 
-namespace DotnetMVCApp.Controllers
-{
-    public class User
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-    }
+//namespace DotnetMVCApp.Controllers
+//{
+//    public class UserController : Controller
+//    {
+//        private readonly MongoDbContext _context;
 
-    public class UserController : Controller
-    {
-        private readonly MongoDBService _mongoDBService;
+//        public UserController(MongoDbContext context)
+//        {
+//            _context = context;
+//        }
 
-        public UserController(MongoDBService mongoDBService)
-        {
-            _mongoDBService = mongoDBService;
-        }
-
-        public IActionResult Index()
-        {
-            var usersCollection = _mongoDBService.GetCollection<User>("Users");
-            var users = usersCollection.Find(_ => true).ToList();
-            return View(users);
-        }
-    }
-}
+//        public IActionResult Index()
+//        {
+//            var users = _context.Tests.Find(_ => true).ToList();
+//            return View(users);
+//        }
+//    }
+//}
