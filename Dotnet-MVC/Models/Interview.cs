@@ -9,16 +9,16 @@ namespace DotnetMVCApp.Models
         public int InterviewId { get; set; }
 
         public int UserId { get; set; }
-        public AppUser User { get; set; }
+        public User? User { get; set; }
 
         public int JobId { get; set; }
-        public Job Job { get; set; }
+        public Job? Job { get; set; }
 
-        public string VideoUrl { get; set; } // Cloudinary
-        public string AudioUrl { get; set; } // Cloudinary
+        public string? VideoUrl { get; set; } // Cloudinary
+        public string? AudioUrl { get; set; } // Cloudinary
 
         [Column(TypeName = "jsonb")]
-        public string Score { get; set; }
+        public string? Score { get; set; }
     }
 }
 
