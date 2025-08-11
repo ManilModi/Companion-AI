@@ -1,8 +1,20 @@
-﻿using System;
+﻿using System.ComponentModel.DataAnnotations;
 
-public class Class1
+namespace DotnetMVCApp.Models
 {
-	public Class1()
-	{
-	}
+    public class Feedback
+    {
+        [Key]
+        public int FeedbackId { get; set; }
+
+        public int UserId { get; set; }
+        public AppUser User { get; set; }
+
+        public int JobId { get; set; }
+        public Job Job { get; set; }
+
+        public string FeedbackText { get; set; }
+        public string Sentiment { get; set; }
+    }
 }
+
