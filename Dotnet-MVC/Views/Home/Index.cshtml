@@ -1,8 +1,38 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Sign In";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MyApp</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+
+    <!-- Clerk Frontend SDK -->
+    <script async
+            crossorigin="anonymous"
+            data-clerk-publishable-key="pk_test_YWJsZS10ZXRyYS0yOS5jbGVyay5hY2NvdW50cy5kZXYk"
+            src="https://cdn.jsdelivr.net/npm/&#64;clerk/clerk-js@latest/dist/clerk.browser.js">
+    </script>
+</head>
+
+<body>
+    <div id="auth-container" style="margin: 50px auto; width: 350px;">
+        <div id="sign-in"></div>
+    </div>
+
+    <script>
+        window.addEventListener("load", async function () {
+            const clerk = window.Clerk;
+            await clerk.load();
+
+            if (clerk.user) {
+                // User is signed in
+                window.location.href = "/Dashboard";
+            } else {
+                // Show Sign In widget
+                clerk.mountSignIn(document.getElementById("sign-in"));
+            }
+        });
+    </script>
+</body>

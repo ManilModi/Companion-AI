@@ -1,5 +1,4 @@
-﻿// Role claim transformation service
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -7,19 +6,32 @@ public class ClerkRoleClaimsTransformation : IClaimsTransformation
 {
     public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
-        var identity = (ClaimsIdentity)principal.Identity;
+        if (principal?.Identity is not ClaimsIdentity identity)
+        {
+            return Task.FromResult(principal ?? new ClaimsPrincipal());
+
+        }
 
         var metadataClaim = identity.FindFirst("public_metadata");
-        if (metadataClaim != null)
+        if (metadataClaim != null && !string.IsNullOrWhiteSpace(metadataClaim.Value))
         {
-            var metadata = JsonDocument.Parse(metadataClaim.Value).RootElement;
-            if (metadata.TryGetProperty("role", out var roleProp))
+            try
             {
-                var role = roleProp.GetString();
-                if (!string.IsNullOrEmpty(role) && !identity.HasClaim(ClaimTypes.Role, role))
+                using var doc = JsonDocument.Parse(metadataClaim.Value);
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("role", out var roleProp))
                 {
-                    identity.AddClaim(new Claim(ClaimTypes.Role, role));
+                    var role = roleProp.GetString();
+                    if (!string.IsNullOrEmpty(role) && !identity.HasClaim(ClaimTypes.Role, role))
+                    {
+                        identity.AddClaim(new Claim(ClaimTypes.Role, role));
+                    }
                 }
+            }
+            catch (JsonException)
+            {
+                // Invalid JSON in public_metadata — ignore and continue
             }
         }
 
