@@ -6,21 +6,19 @@ public class ClerkRoleClaimsTransformation : IClaimsTransformation
 {
     public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
-        if (principal?.Identity is not ClaimsIdentity identity)
-        {
-            return Task.FromResult(principal ?? new ClaimsPrincipal());
+        if (principal.Identity is not ClaimsIdentity identity || !identity.IsAuthenticated)
+            return Task.FromResult(principal);
 
-        }
-
+        // Get Clerk's public_metadata claim
         var metadataClaim = identity.FindFirst("public_metadata");
-        if (metadataClaim != null && !string.IsNullOrWhiteSpace(metadataClaim.Value))
+
+        if (!string.IsNullOrEmpty(metadataClaim?.Value))
         {
             try
             {
-                using var doc = JsonDocument.Parse(metadataClaim.Value);
-                var root = doc.RootElement;
+                var metadata = JsonDocument.Parse(metadataClaim.Value).RootElement;
 
-                if (root.TryGetProperty("role", out var roleProp))
+                if (metadata.TryGetProperty("role", out var roleProp))
                 {
                     var role = roleProp.GetString();
                     if (!string.IsNullOrEmpty(role) && !identity.HasClaim(ClaimTypes.Role, role))
@@ -31,7 +29,7 @@ public class ClerkRoleClaimsTransformation : IClaimsTransformation
             }
             catch (JsonException)
             {
-                // Invalid JSON in public_metadata — ignore and continue
+                // Ignore if metadata is invalid JSON
             }
         }
 
