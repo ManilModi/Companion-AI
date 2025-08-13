@@ -1,8 +1,74 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Sign In";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MyApp</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+
+    <!-- Clerk Frontend SDK -->
+    <script async
+            crossorigin="anonymous"
+            data-clerk-publishable-key="pk_test_YWJsZS10ZXRyYS0yOS5jbGVyay5hY2NvdW50cy5kZXYk"
+            src="https://cdn.jsdelivr.net/npm/&#64;clerk/clerk-js@latest/dist/clerk.browser.js">
+    </script>
+</head>
+
+<body>
+    <div id="auth-container" style="margin: 50px auto; width: 350px;">
+
+        <!-- Step 1: Role Picker -->
+        <div id="role-selection">
+            <h2>Select Your Role</h2>
+            <button onclick="setRoleAndShowSignIn('Candidate')">Candidate</button>
+            <button onclick="setRoleAndShowSignIn('HR')">HR</button>
+        </div>
+
+        <!-- Step 2: Clerk Sign-In -->
+        <div id="sign-in" style="display:none;"></div>
+
+    </div>
+
+    <script>
+        let clerkInstance;
+
+        // Step 1: Store role & show sign-in
+        function setRoleAndShowSignIn(role) {
+            sessionStorage.setItem("userRole", role);
+            document.getElementById("role-selection").style.display = "none";
+            document.getElementById("sign-in").style.display = "block";
+            clerkInstance.mountSignIn(document.getElementById("sign-in"));
+        }
+
+        // Step 2: Initialize Clerk
+        window.addEventListener("load", async function () {
+            await window.Clerk.load();
+            clerkInstance = window.Clerk;
+
+            // Step 3: If already signed in, update role & redirect
+            if (clerkInstance.user) {
+                await updateUserRole();
+                window.location.href = "/Dashboard";
+            }
+        });
+
+        // Step 3: After sign-in, set role in Clerk publicMetadata
+        async function updateUserRole() {
+            const role = sessionStorage.getItem("userRole");
+            if (role && clerkInstance.user) {
+                await clerkInstance.user.update({
+                    publicMetadata: { role: role }
+                });
+                sessionStorage.removeItem("userRole");
+            }
+        }
+
+        // Listen for Clerk sign-in event
+        document.addEventListener("clerk:afterSignIn", async () => {
+            await updateUserRole();
+            window.location.href = "/Dashboard";
+        });
+    </script>
+</body>
