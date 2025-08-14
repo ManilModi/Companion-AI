@@ -1,7 +1,9 @@
-using DotnetMVCApp.Data;
-using Microsoft.EntityFrameworkCore;
 using Clerk.Net.AspNetCore.Security;
+using DotnetMVCApp.Data;
+using DotnetMVCApp.Models;
+using DotnetMVCApp.Repositories;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -26,6 +28,8 @@ builder.Services
     });
 
 // Transform Clerk's public_metadata to Role claims
+builder.Services.AddScoped<IUserRepo, UserRepo>();
+
 builder.Services.AddScoped<IClaimsTransformation, ClerkRoleClaimsTransformation>();
 
 // Authorization policies (optional)

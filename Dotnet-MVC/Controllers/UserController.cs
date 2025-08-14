@@ -1,24 +1,61 @@
-﻿//using Microsoft.AspNetCore.Mvc;
-////using DotnetMVCApp.Services;
-//using DotnetMVCApp.Models;
-//using System.Linq;
-//using MongoDB.Driver;
+﻿using DotnetMVCApp.DTOs;
+using DotnetMVCApp.Models;
+using DotnetMVCApp.Repositories;
+using HiringAssistance.Models;
+using Microsoft.AspNetCore.Mvc;
 
-//namespace DotnetMVCApp.Controllers
-//{
-//    public class UserController : Controller
-//    {
-//        private readonly MongoDbContext _context;
+namespace DotnetMVCApp.Controllers
+{
+    [ApiController]
+    [Route("api/users")]
+    public class UsersController : ControllerBase
+    {
+        private readonly IUserRepo _userRepo;
 
-//        public UserController(MongoDbContext context)
-//        {
-//            _context = context;
-//        }
+        public UsersController(IUserRepo userRepo)
+        {
+            _userRepo = userRepo;
+        }
 
-//        public IActionResult Index()
-//        {
-//            var users = _context.Tests.Find(_ => true).ToList();
-//            return View(users);
-//        }
-//    }
-//}
+        [HttpPost("clerk-login")]
+        public IActionResult ClerkLogin([FromBody] ClerkUserDto clerkUser)
+        {
+            try
+            {
+                // Validate input
+                if (clerkUser == null
+                    || string.IsNullOrEmpty(clerkUser.ClerkId)
+                    || string.IsNullOrEmpty(clerkUser.Email))
+                {
+                    return BadRequest("ClerkId and Email are required.");
+                }
+
+                // Check if user already exists
+                var existingUser = _userRepo.GetAllUser()
+                    .FirstOrDefault(u => u.ClerkId == clerkUser.ClerkId);
+
+                if (existingUser != null)
+                {
+                    return Ok(existingUser);
+                }
+
+                // Create new user
+                var newUser = new User
+                {
+                    ClerkId = clerkUser.ClerkId,
+                    Email = clerkUser.Email,
+                    Role = Enum.TryParse<UserRole>(clerkUser.Role, true, out var role) ? role : UserRole.Candidate
+                };
+
+                var addedUser = _userRepo.Add(newUser);
+
+                return Ok(addedUser);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("ClerkLogin error: " + ex.Message);
+                return StatusCode(500, ex.Message);
+            }
+        }
+    }
+}

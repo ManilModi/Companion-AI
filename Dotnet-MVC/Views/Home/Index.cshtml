@@ -2,6 +2,8 @@
     ViewData["Title"] = "Sign In";
 }
 
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,63 +14,97 @@
     <script async
             crossorigin="anonymous"
             data-clerk-publishable-key="pk_test_YWJsZS10ZXRyYS0yOS5jbGVyay5hY2NvdW50cy5kZXYk"
-            src="https://cdn.jsdelivr.net/npm/&#64;clerk/clerk-js@latest/dist/clerk.browser.js">
+            src="https://cdn.jsdelivr.net/npm/@@clerk/clerk-js@latest/dist/clerk.browser.js">
     </script>
 </head>
 
 <body>
-    <div id="auth-container" style="margin: 50px auto; width: 350px;">
+    <div class="text-center">
+        <h1 class="display-4">Welcome</h1>
+        <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    </div>
 
-        <!-- Step 1: Role Picker -->
-        <div id="role-selection">
-            <h2>Select Your Role</h2>
-            <button onclick="setRoleAndShowSignIn('Candidate')">Candidate</button>
-            <button onclick="setRoleAndShowSignIn('HR')">HR</button>
-        </div>
+    <!-- Role selection -->
+    <div id="role-selection" style="text-align:center; margin: 50px auto;">
+        <h2>Select your role</h2>
+        <button onclick="setRole('Client')">HR</button>
+        <button onclick="setRole('Photographer')">Candidate</button>
+    </div>
 
-        <!-- Step 2: Clerk Sign-In -->
-        <div id="sign-in" style="display:none;"></div>
-
+    <!-- Clerk Sign-in container -->
+    <div id="auth-container" style="margin: 50px auto; width: 350px; display:none;">
+        <div id="sign-in"></div>
     </div>
 
     <script>
-        let clerkInstance;
+        let clerk; // global reference
 
-        // Step 1: Store role & show sign-in
-        function setRoleAndShowSignIn(role) {
-            sessionStorage.setItem("userRole", role);
+        // Step 1: Set role and show Clerk login
+        function setRole(role) {
+            localStorage.setItem("selectedRole", role);
+
             document.getElementById("role-selection").style.display = "none";
-            document.getElementById("sign-in").style.display = "block";
-            clerkInstance.mountSignIn(document.getElementById("sign-in"));
+            document.getElementById("auth-container").style.display = "block";
+
+            clerk.mountSignIn(document.getElementById("sign-in"));
         }
 
-        // Step 2: Initialize Clerk
+        // Step 2: Load Clerk
         window.addEventListener("load", async function () {
-            await window.Clerk.load();
-            clerkInstance = window.Clerk;
+            clerk = window.Clerk;
+            await clerk.load();
 
-            // Step 3: If already signed in, update role & redirect
-            if (clerkInstance.user) {
-                await updateUserRole();
-                window.location.href = "/Dashboard";
+            // If already signed in
+            if (clerk.user) {
+                handleLogin(clerk.user);
             }
         });
 
-        // Step 3: After sign-in, set role in Clerk publicMetadata
-        async function updateUserRole() {
-            const role = sessionStorage.getItem("userRole");
-            if (role && clerkInstance.user) {
-                await clerkInstance.user.update({
-                    publicMetadata: { role: role }
+        // Step 3: Handle Clerk login and send to backend
+        async function handleLogin(user) {
+            const emailAddress = user.primaryEmailAddress?.emailAddress;
+            if (!emailAddress) {
+                alert("Email not available from Clerk. Please check your account.");
+                return;
+            }
+
+            // Get role from localStorage (fallback to Client)
+            const role = localStorage.getItem("selectedRole") || "Client";
+
+            const payload = {
+                clerkId: user.id,
+                email: emailAddress,
+                fullName: user.fullName ?? "",
+                role: role
+            };
+
+            try {
+                const res = await fetch("/api/users/clerk-login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
                 });
-                sessionStorage.removeItem("userRole");
+
+                if (!res.ok) throw new Error("Failed to login");
+
+                const data = await res.json();
+                console.log("User logged in:", data);
+
+                // Clear localStorage role
+                localStorage.removeItem("selectedRole");
+
+                // Redirect to dashboard
+                window.location.href = "/Dashboard";
+            } catch (err) {
+                console.error("Error logging in:", err);
+                alert("Error logging in. Please try again.");
             }
         }
 
-        // Listen for Clerk sign-in event
-        document.addEventListener("clerk:afterSignIn", async () => {
-            await updateUserRole();
-            window.location.href = "/Dashboard";
+        // Step 4: Listen for Clerk login events
+        window.Clerk?.addListener("userSignedIn", (user) => {
+            handleLogin(user);
         });
     </script>
 </body>
+</html>

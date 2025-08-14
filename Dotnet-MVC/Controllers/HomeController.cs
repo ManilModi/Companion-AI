@@ -1,34 +1,17 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using DotnetMVCApp.Models;
-using Microsoft.AspNetCore.Authorization;
 
-namespace DotnetMVCApp.Controllers;
-
-//[Authorize]
-public class HomeController : Controller
+namespace DotnetMVCApp.Controllers
 {
-    private readonly ILogger<HomeController> _logger;
-
-    public HomeController(ILogger<HomeController> logger)
+    public class HomeController : Controller
     {
-        _logger = logger;
-    }
+        public IActionResult Index()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectToAction("SyncUser", "User");
+            }
 
-    [AllowAnonymous]
-    public IActionResult Index()
-    {
-        return View();
-    }
-
-    public IActionResult Privacy()
-    {
-        return View();
-    }
-
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return View();
+        }
     }
 }
