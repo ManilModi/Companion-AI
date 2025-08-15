@@ -39,11 +39,15 @@ namespace DotnetMVCApp.Controllers
                     return Ok(existingUser);
                 }
 
+                Console.WriteLine("Received role: " + clerkUser.Role);
+
+
                 // Create new user
                 var newUser = new User
                 {
                     ClerkId = clerkUser.ClerkId,
                     Email = clerkUser.Email,
+
                     Role = Enum.TryParse<UserRole>(clerkUser.Role, true, out var role) ? role : UserRole.Candidate
                 };
 

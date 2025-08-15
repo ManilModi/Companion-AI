@@ -1,5 +1,6 @@
 ﻿@{
-    ViewData["Title"] = "Sign In";
+    ViewData["Title"] = "Sign In - Companion AI";
+    var clerkUrl = "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5.83.0/dist/clerk.browser.js";
 }
 
 <!DOCTYPE html>
@@ -7,75 +8,55 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - MyApp</title>
-    <link rel="stylesheet" href="~/css/site.css" />
+    <title>@ViewData["Title"]</title>
 
-    <!-- Clerk Frontend SDK -->
-    <script async
-            crossorigin="anonymous"
-            data-clerk-publishable-key="pk_test_YWJsZS10ZXRyYS0yOS5jbGVyay5hY2NvdW50cy5kZXYk"
-            src="https://cdn.jsdelivr.net/npm/@@clerk/clerk-js@latest/dist/clerk.browser.js">
-    </script>
-</head>
-
-<body>
-    <div class="text-center">
-        <h1 class="display-4">Welcome</h1>
-        <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-    </div>
-
-    <!-- Role selection -->
-    <div id="role-selection" style="text-align:center; margin: 50px auto;">
-        <h2>Select your role</h2>
-        <button onclick="setRole('Client')">HR</button>
-        <button onclick="setRole('Photographer')">Candidate</button>
-    </div>
-
-    <!-- Clerk Sign-in container -->
-    <div id="auth-container" style="margin: 50px auto; width: 350px; display:none;">
-        <div id="sign-in"></div>
-    </div>
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <script>
-        let clerk; // global reference
+        let clerk;
+        let clerkReady = false;
 
-        // Step 1: Set role and show Clerk login
-        function setRole(role) {
-            localStorage.setItem("selectedRole", role);
+        async function initClerk() {
+            if (!window.Clerk) return console.error("Clerk not available");
 
-            document.getElementById("role-selection").style.display = "none";
-            document.getElementById("auth-container").style.display = "block";
+            clerk = window.Clerk;
 
-            clerk.mountSignIn(document.getElementById("sign-in"));
+            try {
+                await clerk.load(); // ensures Clerk is fully initialized
+                clerkReady = true;
+                console.log("Clerk loaded successfully");
+
+                const selectedRole = localStorage.getItem("selectedRole");
+
+                // If user already signed in
+                if (clerk.user) {
+                    document.getElementById("role-selection").classList.add("hidden");
+                    document.getElementById("auth-container").classList.remove("hidden");
+
+                    if (selectedRole) {
+                        handleLogin(clerk.user);
+                    } else if (clerk.mountSignIn) {
+                        clerk.mountSignIn(document.getElementById("sign-in"));
+                    }
+                }
+            } catch (err) {
+                console.error("Clerk failed to load:", err);
+                alert("Failed to load login widget. Refresh the page.");
+            }
         }
 
-        // Step 2: Load Clerk
-        window.addEventListener("load", async function () {
-            clerk = window.Clerk;
-            await clerk.load();
-
-            // If already signed in
-            if (clerk.user) {
-                handleLogin(clerk.user);
-            }
-        });
-
-        // Step 3: Handle Clerk login and send to backend
         async function handleLogin(user) {
-            const emailAddress = user.primaryEmailAddress?.emailAddress;
-            if (!emailAddress) {
-                alert("Email not available from Clerk. Please check your account.");
-                return;
-            }
+            const email = user.primaryEmailAddress?.emailAddress;
+            if (!email) return alert("Email not available from Clerk.");
 
-            // Get role from localStorage (fallback to Client)
-            const role = localStorage.getItem("selectedRole") || "Client";
+            const role = localStorage.getItem("selectedRole") || "Candidate";
 
             const payload = {
                 clerkId: user.id,
-                email: emailAddress,
+                email,
                 fullName: user.fullName ?? "",
-                role: role
+                role
             };
 
             try {
@@ -87,23 +68,73 @@
 
                 if (!res.ok) throw new Error("Failed to login");
 
-                const data = await res.json();
-                console.log("User logged in:", data);
-
-                // Clear localStorage role
+                await res.json();
                 localStorage.removeItem("selectedRole");
-
-                // Redirect to dashboard
-                window.location.href = "/Dashboard";
+                window.location.href = "/Dashboard"; // redirect once
             } catch (err) {
                 console.error("Error logging in:", err);
                 alert("Error logging in. Please try again.");
             }
         }
 
-        // Step 4: Listen for Clerk login events
+        async function setRole(role) {
+            localStorage.setItem("selectedRole", role);
+
+            document.getElementById("role-selection").classList.add("hidden");
+            document.getElementById("auth-container").classList.remove("hidden");
+
+            // Wait until Clerk is fully ready
+            while (!clerkReady) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            if (clerk.mountSignIn) {
+                clerk.mountSignIn(document.getElementById("sign-in"));
+            }
+        }
+    </script>
+
+    <!-- Dynamically load Clerk SDK -->
+    <script>
+        const script = document.createElement("script");
+        script.src = "@clerkUrl";
+        script.async = true;
+        script.crossOrigin = "anonymous";
+        script.dataset.clerkPublishableKey = "pk_test_YWJsZS10ZXRyYS0yOS5jbGVyay5hY2NvdW50cy5kZXYk";
+        document.head.appendChild(script);
+
+        script.onload = () => {
+            console.log("Clerk script loaded");
+            initClerk();
+        };
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Welcome to Companion AI</h1>
+        <p class="text-gray-600 mb-8">Streamline your AI-driven workflows. Select your role and sign in below.</p>
+
+        <!-- Role Selection -->
+        <div id="role-selection" class="space-y-4">
+            <h2 class="text-xl font-semibold text-gray-700">Select your role</h2>
+            <div class="flex justify-center gap-4">
+                <button onclick="setRole('HR')" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">HR</button>
+                <button onclick="setRole('Candidate')" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Candidate</button>
+            </div>
+        </div>
+
+        <!-- Clerk Sign-in container -->
+        <div id="auth-container" class="mt-8 hidden">
+            <div id="sign-in"></div>
+        </div>
+    </div>
+
+    <script>
         window.Clerk?.addListener("userSignedIn", (user) => {
-            handleLogin(user);
+            const selectedRole = localStorage.getItem("selectedRole");
+            if (selectedRole && window.location.pathname === "/") {
+                handleLogin(user);
+            }
         });
     </script>
 </body>
