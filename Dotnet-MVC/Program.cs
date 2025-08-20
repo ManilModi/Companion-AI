@@ -1,10 +1,12 @@
 ﻿using DotnetMVCApp.Data;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 

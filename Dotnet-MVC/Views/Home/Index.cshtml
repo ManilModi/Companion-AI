@@ -1,141 +1,126 @@
 ﻿@{
-    ViewData["Title"] = "Sign In - Companion AI";
-    var clerkUrl = "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5.83.0/dist/clerk.browser.js";
+    ViewData["Title"] = "Companion AI - Revolutionize Hiring";
 }
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"]</title>
 
-    <!-- Tailwind CDN -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <script>
-        let clerk;
-        let clerkReady = false;
-
-        async function initClerk() {
-            if (!window.Clerk) return console.error("Clerk not available");
-
-            clerk = window.Clerk;
-
-            try {
-                await clerk.load(); // ensures Clerk is fully initialized
-                clerkReady = true;
-                console.log("Clerk loaded successfully");
-
-                const selectedRole = localStorage.getItem("selectedRole");
-
-                // If user already signed in
-                if (clerk.user) {
-                    document.getElementById("role-selection").classList.add("hidden");
-                    document.getElementById("auth-container").classList.remove("hidden");
-
-                    if (selectedRole) {
-                        handleLogin(clerk.user);
-                    } else if (clerk.mountSignIn) {
-                        clerk.mountSignIn(document.getElementById("sign-in"));
-                    }
-                }
-            } catch (err) {
-                console.error("Clerk failed to load:", err);
-                alert("Failed to load login widget. Refresh the page.");
-            }
-        }
-
-        async function handleLogin(user) {
-            const email = user.primaryEmailAddress?.emailAddress;
-            if (!email) return alert("Email not available from Clerk.");
-
-            const role = localStorage.getItem("selectedRole") || "Candidate";
-
-            const payload = {
-                clerkId: user.id,
-                email,
-                fullName: user.fullName ?? "",
-                role
-            };
-
-            try {
-                const res = await fetch("/api/users/clerk-login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!res.ok) throw new Error("Failed to login");
-
-                await res.json();
-                localStorage.removeItem("selectedRole");
-                window.location.href = "/Dashboard"; // redirect once
-            } catch (err) {
-                console.error("Error logging in:", err);
-                alert("Error logging in. Please try again.");
-            }
-        }
-
-        async function setRole(role) {
-            localStorage.setItem("selectedRole", role);
-
-            document.getElementById("role-selection").classList.add("hidden");
-            document.getElementById("auth-container").classList.remove("hidden");
-
-            // Wait until Clerk is fully ready
-            while (!clerkReady) {
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
-
-            if (clerk.mountSignIn) {
-                clerk.mountSignIn(document.getElementById("sign-in"));
-            }
-        }
-    </script>
-
-    <!-- Dynamically load Clerk SDK -->
-    <script>
-        const script = document.createElement("script");
-        script.src = "@clerkUrl";
-        script.async = true;
-        script.crossOrigin = "anonymous";
-        script.dataset.clerkPublishableKey = "pk_test_YWJsZS10ZXRyYS0yOS5jbGVyay5hY2NvdW50cy5kZXYk";
-        document.head.appendChild(script);
-
-        script.onload = () => {
-            console.log("Clerk script loaded");
-            initClerk();
-        };
-    </script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md text-center">
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">Welcome to Companion AI</h1>
-        <p class="text-gray-600 mb-8">Streamline your AI-driven workflows. Select your role and sign in below.</p>
+<body class="bg-gray-900 text-white min-h-screen">
 
-        <!-- Role Selection -->
-        <div id="role-selection" class="space-y-4">
-            <h2 class="text-xl font-semibold text-gray-700">Select your role</h2>
-            <div class="flex justify-center gap-4">
-                <button onclick="setRole('HR')" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">HR</button>
-                <button onclick="setRole('Candidate')" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Candidate</button>
+    <!-- Navbar -->
+    <nav class="flex justify-between items-center px-8 py-4 bg-gray-900 shadow-md">
+        <div class="text-2xl font-bold text-indigo-400">Companion AI</div>
+        <ul class="flex space-x-8">
+            <li><a href="#" class="hover:text-indigo-400 transition">Home</a></li>
+            <li><a href="#features" class="hover:text-indigo-400 transition">Features</a></li>
+            <li><a href="#contact" class="hover:text-indigo-400 transition">Contact</a></li>
+            <li><a href="#dashboard" class="hover:text-indigo-400 transition">HR Dashboard</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="flex flex-col lg:flex-row items-center px-12 py-20">
+        <!-- Left Content -->
+        <div class="lg:w-1/2 space-y-6">
+            <span class="px-4 py-2 bg-indigo-500/20 text-indigo-400 rounded-full text-sm font-medium">
+                AI-Powered Hiring Solution
+            </span>
+            <h1 class="text-5xl font-extrabold leading-tight">
+                Revolutionize Your <span class="text-indigo-400">Hiring Process</span>
+            </h1>
+            <p class="text-gray-400 text-lg">
+                Streamline talent acquisition with our AI assistant that manages resumes,
+                schedules interviews, and ensures consistent candidate screening for efficient hiring decisions.
+            </p>
+            <div class="flex space-x-4">
+                <a href="#get-started" class="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl shadow-lg transition">
+                    Get Started →
+                </a>
+                <a href="#demo" class="px-6 py-3 border border-gray-600 hover:border-indigo-500 rounded-xl transition">
+                    Watch Demo
+                </a>
             </div>
         </div>
 
-        <!-- Clerk Sign-in container -->
-        <div id="auth-container" class="mt-8 hidden">
-            <div id="sign-in"></div>
+        <!-- Right Content (AI Assistant Card) -->
+        <div class="lg:w-1/2 mt-12 lg:mt-0">
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl space-y-4">
+                <h3 class="text-lg font-semibold text-indigo-300">AI Assistant</h3>
+                <p class="text-sm text-gray-400">Analyzing candidate profiles...</p>
+                <div class="space-y-3">
+                    <div class="flex justify-between bg-gray-700 p-3 rounded-lg">
+                        <span>Candidate 1 – Software Engineer</span>
+                        <span class="text-green-400 font-medium">90% Match</span>
+                    </div>
+                    <div class="flex justify-between bg-gray-700 p-3 rounded-lg">
+                        <span>Candidate 2 – Software Engineer</span>
+                        <span class="text-green-400 font-medium">85% Match</span>
+                    </div>
+                    <div class="flex justify-between bg-gray-700 p-3 rounded-lg">
+                        <span>Candidate 3 – Software Engineer</span>
+                        <span class="text-green-400 font-medium">80% Match</span>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <script>
-        window.Clerk?.addListener("userSignedIn", (user) => {
-            const selectedRole = localStorage.getItem("selectedRole");
-            if (selectedRole && window.location.pathname === "/") {
-                handleLogin(user);
-            }
-        });
-    </script>
+    <!-- Features Section -->
+    <section id="features" class="px-12 py-20 bg-gray-950">
+        <h2 class="text-4xl font-bold text-center mb-12">Key Features</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Feature Card -->
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg hover:scale-105 transition">
+                <div class="text-3xl text-indigo-400 mb-4">🧠</div>
+                <h3 class="text-xl font-semibold mb-2">AI-Powered Resume Screening</h3>
+                <p class="text-gray-400 text-sm">
+                    Automatically analyze and rank resumes based on job requirements with advanced AI algorithms.
+                </p>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg hover:scale-105 transition">
+                <div class="text-3xl text-pink-400 mb-4">📅</div>
+                <h3 class="text-xl font-semibold mb-2">Smart Interview Scheduling</h3>
+                <p class="text-gray-400 text-sm">
+                    Coordinate interviews seamlessly with automated scheduling that considers all stakeholders.
+                </p>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg hover:scale-105 transition">
+                <div class="text-3xl text-green-400 mb-4">💬</div>
+                <h3 class="text-xl font-semibold mb-2">Candidate Communication</h3>
+                <p class="text-gray-400 text-sm">
+                    Maintain consistent communication with candidates throughout the hiring process.
+                </p>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg hover:scale-105 transition">
+                <div class="text-3xl text-orange-400 mb-4">📊</div>
+                <h3 class="text-xl font-semibold mb-2">Analytics & Insights</h3>
+                <p class="text-gray-400 text-sm">
+                    Get detailed insights into your hiring process with comprehensive analytics and reporting.
+                </p>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg hover:scale-105 transition">
+                <div class="text-3xl text-purple-400 mb-4">🛡️</div>
+                <h3 class="text-xl font-semibold mb-2">Bias-Free Screening</h3>
+                <p class="text-gray-400 text-sm">
+                    Ensure fair and unbiased candidate evaluation with AI-driven objective assessments.
+                </p>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg hover:scale-105 transition">
+                <div class="text-3xl text-cyan-400 mb-4">⏱️</div>
+                <h3 class="text-xl font-semibold mb-2">Time Optimization</h3>
+                <p class="text-gray-400 text-sm">
+                    Reduce hiring time by up to 80% with automated workflows and intelligent prioritization.
+                </p>
+            </div>
+        </div>
+    </section>
+
 </body>
 </html>
