@@ -12,10 +12,12 @@ namespace DotnetMVCApp.Models
         public int UserId { get; set; }
 
         [Required, EmailAddress]
-        public string? Email { get; set; }
+        public string Email { get; set; }
+
+        public string Salt { get; set; }
 
         [Required]
-        public string? ClerkId { get; set; }
+        public string Password { get; set; } 
 
         public string? ResumeUrl { get; set; } // Cloudinary
 

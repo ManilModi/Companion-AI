@@ -20,6 +20,7 @@ namespace DotnetMVCApp.Repositories
                 .Include(u => u.JobsPosted)
                 .Include(u => u.Interviews)
                 .Include(u => u.Feedbacks)
+                .AsSplitQuery()
                 .ToList();
         }
 
@@ -30,6 +31,7 @@ namespace DotnetMVCApp.Repositories
                 .Include(u => u.JobsPosted)
                 .Include(u => u.Interviews)
                 .Include(u => u.Feedbacks)
+                .AsSplitQuery()
                 .FirstOrDefault(u => u.UserId == id);
         }
 
@@ -55,6 +57,11 @@ namespace DotnetMVCApp.Repositories
                 _context.AppUsers.Remove(user);
                 _context.SaveChanges();
             }
+        }
+
+        public User GetUserByEmail(string email)
+        {
+            return _context.AppUsers.FirstOrDefault(u => u.Email == email);
         }
     }
 }
