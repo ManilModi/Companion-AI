@@ -3,9 +3,9 @@
 public class AccountController : Controller
 {
     [HttpGet]
-    public IActionResult SignIn()
+    public IActionResult Login()
     {
-        return View(); // will look for Views/Account/SignIn.cshtml
+        return View(); // will look for Views/Account/Login.cshtml
     }
 
     [HttpGet]
@@ -15,7 +15,7 @@ public class AccountController : Controller
     }
 
     [HttpPost]
-    public IActionResult SignIn(string Email, string Password)
+    public IActionResult Login(string Username, string Password, bool RememberMe)
     {
         // TODO: validate user
         return RedirectToAction("Index", "Home");
@@ -25,8 +25,6 @@ public class AccountController : Controller
     public IActionResult Register(string Username, string Email, string Password)
     {
         // TODO: save user
-        return RedirectToAction("SignIn");
+        return RedirectToAction("Login");
     }
-
-
 }

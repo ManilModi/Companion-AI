@@ -10,36 +10,35 @@
 
         <form asp-action="Register" method="post" class="space-y-5">
             <div>
-                <label asp-for="Username" class="block text-sm font-medium text-gray-700"></label>
-                <input asp-for="Username" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Choose a username" />
+                <label asp-for="Username" class="block text-sm font-medium text-black"></label>
+                <input asp-for="Username" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-black text-black" placeholder="Choose a username" />
                 <span asp-validation-for="Username" class="text-red-500 text-sm"></span>
             </div>
 
             <div>
-                <label asp-for="Email" class="block text-sm font-medium text-gray-700"></label>
-                <input asp-for="Email" type="email" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Enter your email" />
+                <label asp-for="Email" class="block text-sm font-medium text-black"></label>
+                <input asp-for="Email" type="email" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-black text-black" placeholder="Enter your email" />
                 <span asp-validation-for="Email" class="text-red-500 text-sm"></span>
             </div>
 
             <div>
-                <label asp-for="Password" class="block text-sm font-medium text-gray-700"></label>
-                <input asp-for="Password" type="password" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Create a password" />
+                <label asp-for="Password" class="block text-sm font-medium text-black"></label>
+                <input asp-for="Password" type="password" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-black text-black" placeholder="Create a password" />
                 <span asp-validation-for="Password" class="text-red-500 text-sm"></span>
             </div>
 
             <div>
-                <label asp-for="ConfirmPassword" class="block text-sm font-medium text-gray-700"></label>
-                <input asp-for="ConfirmPassword" type="password" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Re-enter your password" />
+                <label asp-for="ConfirmPassword" class="block text-sm font-medium text-black"></label>
+                <input asp-for="ConfirmPassword" type="password" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-black text-black" placeholder="Re-enter your password" />
                 <span asp-validation-for="ConfirmPassword" class="text-red-500 text-sm"></span>
             </div>
 
             <div>
-                <label asp-for="Role" class="block text-sm font-medium text-gray-700"></label>
-                <select asp-for="Role" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <label asp-for="Role" class="block text-sm font-medium text-black"></label>
+                <select asp-for="Role" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-black">
                     <option value="">-- Select Role --</option>
-                    <option value="User">Normal User</option>
-                    <option value="Entrepreneur">Entrepreneur</option>
-                    <option value="Researcher">Researcher</option>
+                    <option value="HR">HR</option>
+                    <option value="Candidate">Candidate</option>
                 </select>
                 <span asp-validation-for="Role" class="text-red-500 text-sm"></span>
             </div>
