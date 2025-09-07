@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DotnetMVCApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250813105054_init")]
+    [Migration("20250907123715_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -134,10 +134,6 @@ namespace DotnetMVCApp.Migrations
                     b.Property<string>("BadgesUrl")
                         .HasColumnType("text");
 
-                    b.Property<string>("ClerkId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -145,11 +141,19 @@ namespace DotnetMVCApp.Migrations
                     b.Property<string>("ExtractedInfo")
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("ResumeUrl")
                         .HasColumnType("text");
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Salt")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("UserId");
 

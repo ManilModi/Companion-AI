@@ -8,16 +8,24 @@
     <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
         <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Welcome Back 👋</h2>
 
+        <!-- Display Success or Error -->
+        @if (ViewBag.SuccessMessage != null)
+        {
+            <div class="text-green-600 text-center mb-4 font-medium">@ViewBag.SuccessMessage</div>
+        }
+
         <form asp-action="Login" method="post" class="space-y-5">
+            <div asp-validation-summary="All" class="text-red-500 text-sm mb-2"></div>
+
             <div>
-                <label asp-for="Username" class="block text-sm font-medium text-gray-700"></label>
-                <input asp-for="Username" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Enter your username" />
-                <span asp-validation-for="Username" class="text-red-500 text-sm"></span>
+                <label asp-for="Email" class="block text-sm font-medium text-gray-700"></label>
+                <input asp-for="Email" type="email" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-black" placeholder="Enter your email" />
+                <span asp-validation-for="Email" class="text-red-500 text-sm"></span>
             </div>
 
             <div>
                 <label asp-for="Password" class="block text-sm font-medium text-gray-700"></label>
-                <input asp-for="Password" type="password" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Enter your password" />
+                <input asp-for="Password" type="password" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-black" placeholder="Enter your password" />
                 <span asp-validation-for="Password" class="text-red-500 text-sm"></span>
             </div>
 
