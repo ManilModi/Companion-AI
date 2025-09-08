@@ -1,12 +1,7 @@
 ﻿using DotnetMVCApp.Data;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,47 +13,28 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Add User repository
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 
-// JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+// Cookie Authentication (for MVC)
+builder.Services.AddAuthentication("MyCookieAuth")
+    .AddCookie("MyCookieAuth", options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]))
-    };
-});
-
-// Authorization policies (optional)
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("CandidateOnly", policy => policy.RequireRole("Candidate"));
-    options.AddPolicy("HROnly", policy => policy.RequireRole("HR"));
-});
+        options.LoginPath = "/Account/Login"; // Redirect here if not logged in
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(2);
+    });
 
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    //app.UseHttpsRedirection();
+    // app.UseHttpsRedirection();
 }
 
 app.UseStaticFiles();
 
 app.UseRouting();
 
-// Enable JWT Auth
+// Enable Cookie Auth
 app.UseAuthentication();
 app.UseAuthorization();
 
