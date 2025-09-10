@@ -1,0 +1,27 @@
+﻿@model DotnetMVCApp.ViewModels.HR.OverviewViewModel
+@{
+    Layout = "~/Views/Shared/_HRLayout.cshtml";
+    ViewData["Title"] = "HR Dashboard - Overview";
+}
+
+<h2>Overview</h2>
+<div class="row">
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <h4>@Model.ActiveJobs</h4>
+            <p>Active Jobs</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <h4>@Model.TotalApplicants</h4>
+            <p>Total Applicants</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <h4>@Model.UpcomingInterviews</h4>
+            <p>Upcoming Interviews</p>
+        </div>
+    </div>
+</div>

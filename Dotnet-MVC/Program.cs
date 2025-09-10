@@ -12,6 +12,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Add User repository
 builder.Services.AddScoped<IUserRepo, UserRepo>();
+builder.Services.AddScoped<IJobRepo, JobRepo>();
+builder.Services.AddScoped<IInterviewrepo, InterviewRepo>();
+builder.Services.AddScoped<IFeedbackrepo,FeedbackRepo>();
+builder.Services.AddScoped<IUserJobRepo, UserJobRepo>();
+
+
 
 // Cookie Authentication (for MVC)
 builder.Services.AddAuthentication("MyCookieAuth")

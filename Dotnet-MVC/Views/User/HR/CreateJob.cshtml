@@ -1,0 +1,36 @@
+﻿@model DotnetMVCApp.ViewModels.HR.CreateJobViewModel
+@{
+    Layout = "~/Views/Shared/_HRLayout.cshtml";
+    ViewData["Title"] = "Create Job";
+}
+
+<h2>Create New Job</h2>
+<form asp-action="CreateJob" method="post">
+    <div class="form-group">
+        <label>Job Title</label>
+        <input asp-for="JobTitle" class="form-control" />
+        <span asp-validation-for="JobTitle" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label>Job Description</label>
+        <textarea asp-for="JobDescription" class="form-control" rows="5"></textarea> <!-- ✅ textarea -->
+        <span asp-validation-for="JobDescription" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label>Tech Stacks</label>
+        <input asp-for="TechStacks" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label>Skills Required (comma-separated)</label>
+        <input asp-for="SkillsRequired" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label>Open Time</label>
+        <input asp-for="OpenTime" type="datetime-local" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label>Close Time</label>
+        <input asp-for="CloseTime" type="datetime-local" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">Create</button>
+</form>

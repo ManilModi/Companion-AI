@@ -1,0 +1,26 @@
+﻿@model IEnumerable<DotnetMVCApp.ViewModels.HR.ApplicantViewModel>
+@{
+    Layout = "~/Views/Shared/_HRLayout.cshtml";
+    ViewData["Title"] = "Applicants";
+}
+
+<h2>Applicants</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Applied On</th>
+            <th>Feedback</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var applicant in Model)
+        {
+            <tr>
+                <td>@applicant.Email</td>
+                <td>@applicant.AppliedOn.ToShortDateString()</td>
+                <td>@applicant.Feedback</td>
+            </tr>
+        }
+    </tbody>
+</table>

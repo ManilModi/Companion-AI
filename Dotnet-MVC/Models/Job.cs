@@ -1,35 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using DotnetMVCApp.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace DotnetMVCApp.Models
+public class Job
 {
-    public class Job
-    {
-        [Key]
-        public int JobId { get; set; }
+    [Key]
+    public int JobId { get; set; }
 
-        [Required]
-        public string? JobDescription { get; set; }
+    [Required]
+    [MaxLength(200)]   // ✅ new field for title
+    public string JobTitle { get; set; }
 
-        public string? TechStacks { get; set; }
+    [Required]
+    [Column(TypeName = "text")]   // ✅ large text instead of varchar
+    public string? JobDescription { get; set; }
 
-        [Column(TypeName = "jsonb")]
-        public string? SkillsRequired { get; set; }
+    public string? TechStacks { get; set; }
 
-        public DateTime OpenTime { get; set; }
-        public DateTime CloseTime { get; set; }
+    [Column(TypeName = "jsonb")]
+    public string? SkillsRequired { get; set; }
 
-        [Column(TypeName = "jsonb")]
-        public string? Quiz { get; set; }
+    public DateTime OpenTime { get; set; } = DateTime.UtcNow;
+    public DateTime CloseTime { get; set; } = DateTime.UtcNow;
 
-        public ICollection<UserJob>? Applicants { get; set; }
+    [Column(TypeName = "jsonb")]
+    public string? Quiz { get; set; }
 
-        public int PostedByUserId { get; set; }
-        public User? PostedBy { get; set; }
+    public ICollection<UserJob>? Applicants { get; set; }
 
-        public ICollection<Interview>? Interviews { get; set; }
-        public ICollection<Feedback>? Feedbacks { get; set; }
-    }
+    public int PostedByUserId { get; set; }
+    public User? PostedBy { get; set; }
+
+    public ICollection<Interview>? Interviews { get; set; }
+    public ICollection<Feedback>? Feedbacks { get; set; }
 }

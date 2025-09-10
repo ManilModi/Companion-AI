@@ -1,0 +1,33 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"] - HR Dashboard</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-2 bg-dark text-white vh-100">
+                <h4 class="mt-4">HR Panel</h4>
+                <ul class="nav flex-column mt-3">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" asp-action="Overview">Overview</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" asp-action="CreateJob">Create Job</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" asp-action="JobListings">Job Listings</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-10 p-4">
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
