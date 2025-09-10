@@ -5,6 +5,7 @@ namespace DotnetMVCApp.ViewModels.HR
 {
     public class CreateJobViewModel
     {
+        public int JobId { get; set; }
         [Required]
         public string JobTitle { get; set; }   // ✅ New
 

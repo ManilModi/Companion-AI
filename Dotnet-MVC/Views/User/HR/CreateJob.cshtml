@@ -4,33 +4,62 @@
     ViewData["Title"] = "Create Job";
 }
 
-<h2>Create New Job</h2>
-<form asp-action="CreateJob" method="post">
-    <div class="form-group">
-        <label>Job Title</label>
-        <input asp-for="JobTitle" class="form-control" />
-        <span asp-validation-for="JobTitle" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label>Job Description</label>
-        <textarea asp-for="JobDescription" class="form-control" rows="5"></textarea> <!-- ✅ textarea -->
-        <span asp-validation-for="JobDescription" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label>Tech Stacks</label>
-        <input asp-for="TechStacks" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label>Skills Required (comma-separated)</label>
-        <input asp-for="SkillsRequired" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label>Open Time</label>
-        <input asp-for="OpenTime" type="datetime-local" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label>Close Time</label>
-        <input asp-for="CloseTime" type="datetime-local" class="form-control" />
-    </div>
-    <button type="submit" class="btn btn-primary mt-3">Create</button>
-</form>
+<div class="max-w-3xl mx-auto">
+    <h2 class="text-3xl font-extrabold text-gray-800 mb-8 text-center">Create New Job</h2>
+
+    <form asp-action="CreateJob" method="post"
+          class="bg-white shadow-xl rounded-2xl p-8 space-y-6 border border-gray-100">
+
+        <!-- Job Title -->
+        <div>
+            <label asp-for="JobTitle" class="block text-sm font-semibold text-gray-700">Job Title</label>
+            <input asp-for="JobTitle"
+                   class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50 transition" />
+            <span asp-validation-for="JobTitle" class="text-red-500 text-sm"></span>
+        </div>
+
+        <!-- Job Description -->
+        <div>
+            <label asp-for="JobDescription" class="block text-sm font-semibold text-gray-700">Job Description</label>
+            <textarea asp-for="JobDescription" rows="5"
+                      class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50 transition"></textarea>
+            <span asp-validation-for="JobDescription" class="text-red-500 text-sm"></span>
+        </div>
+
+        <!-- Tech Stacks -->
+        <div>
+            <label asp-for="TechStacks" class="block text-sm font-semibold text-gray-700">Tech Stacks</label>
+            <input asp-for="TechStacks"
+                   class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50 transition" />
+        </div>
+
+        <!-- Skills Required -->
+        <div>
+            <label asp-for="SkillsRequired" class="block text-sm font-semibold text-gray-700">Skills Required (comma-separated)</label>
+            <input asp-for="SkillsRequired"
+                   class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50 transition" />
+        </div>
+
+        <!-- Open Time -->
+        <div>
+            <label asp-for="OpenTime" class="block text-sm font-semibold text-gray-700">Open Time</label>
+            <input asp-for="OpenTime" type="datetime-local"
+                   class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50 transition" />
+        </div>
+
+        <!-- Close Time -->
+        <div>
+            <label asp-for="CloseTime" class="block text-sm font-semibold text-gray-700">Close Time</label>
+            <input asp-for="CloseTime" type="datetime-local"
+                   class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50 transition" />
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-4">
+            <button type="submit"
+                    class="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-xl shadow-md hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition">
+                🚀 Create Job
+            </button>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,71 @@
+﻿@model DotnetMVCApp.ViewModels.HR.CreateJobViewModel
+@{
+    Layout = "~/Views/Shared/_HRLayout.cshtml";
+    ViewData["Title"] = "Edit Job";
+}
+
+<div class="flex justify-center">
+    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-lg p-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-3">✏️ Edit Job</h2>
+
+        <form asp-action="EditJob" asp-route-jobId="@Model.JobId" method="post" class="space-y-6">
+            <input type="hidden" asp-for="JobId" />
+
+            <!-- Job Title -->
+            <div>
+                <label asp-for="JobTitle" class="block text-sm font-semibold text-gray-700">Job Title</label>
+                <input asp-for="JobTitle" placeholder="Enter job title"
+                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 transition" />
+                <span asp-validation-for="JobTitle" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Job Description -->
+            <div>
+                <label asp-for="JobDescription" class="block text-sm font-semibold text-gray-700">Job Description</label>
+                <textarea asp-for="JobDescription" rows="5" placeholder="Write detailed job description..."
+                          class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 transition"></textarea>
+                <span asp-validation-for="JobDescription" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Tech Stacks -->
+            <div>
+                <label asp-for="TechStacks" class="block text-sm font-semibold text-gray-700">Tech Stacks</label>
+                <input asp-for="TechStacks" placeholder="e.g., .NET, React, SQL"
+                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 transition" />
+                <span asp-validation-for="TechStacks" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Skills Required -->
+            <div>
+                <label asp-for="SkillsRequired" class="block text-sm font-semibold text-gray-700">Skills Required</label>
+                <input asp-for="SkillsRequired" placeholder="e.g., Problem-solving, Communication"
+                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 transition" />
+                <span asp-validation-for="SkillsRequired" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Open Time -->
+            <div>
+                <label asp-for="OpenTime" class="block text-sm font-semibold text-gray-700">Open Time</label>
+                <input asp-for="OpenTime" type="datetime-local"
+                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 transition" />
+                <span asp-validation-for="OpenTime" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Close Time -->
+            <div>
+                <label asp-for="CloseTime" class="block text-sm font-semibold text-gray-700">Close Time</label>
+                <input asp-for="CloseTime" type="datetime-local"
+                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 transition" />
+                <span asp-validation-for="CloseTime" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Submit -->
+            <div>
+                <button type="submit"
+                        class="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-md hover:from-indigo-700 hover:to-purple-700 transform hover:scale-[1.02] transition">
+                    💾 Update Job
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

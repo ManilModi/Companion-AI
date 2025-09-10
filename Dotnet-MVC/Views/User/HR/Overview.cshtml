@@ -4,24 +4,24 @@
     ViewData["Title"] = "HR Dashboard - Overview";
 }
 
-<h2>Overview</h2>
-<div class="row">
-    <div class="col-md-4">
-        <div class="card p-3 text-center">
-            <h4>@Model.ActiveJobs</h4>
-            <p>Active Jobs</p>
-        </div>
+<h2 class="text-2xl font-bold mb-6">Overview</h2>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Active Jobs -->
+    <div class="bg-white rounded-xl shadow-md p-6 text-center border border-gray-200">
+        <h4 class="text-3xl font-bold text-blue-600">@Model.ActiveJobs</h4>
+        <p class="mt-2 text-gray-700 font-medium">Active Jobs</p>
     </div>
-    <div class="col-md-4">
-        <div class="card p-3 text-center">
-            <h4>@Model.TotalApplicants</h4>
-            <p>Total Applicants</p>
-        </div>
+
+    <!-- Total Applicants -->
+    <div class="bg-white rounded-xl shadow-md p-6 text-center border border-gray-200">
+        <h4 class="text-3xl font-bold text-green-600">@Model.TotalApplicants</h4>
+        <p class="mt-2 text-gray-700 font-medium">Total Applicants</p>
     </div>
-    <div class="col-md-4">
-        <div class="card p-3 text-center">
-            <h4>@Model.UpcomingInterviews</h4>
-            <p>Upcoming Interviews</p>
-        </div>
+
+    <!-- Upcoming Interviews -->
+    <div class="bg-white rounded-xl shadow-md p-6 text-center border border-gray-200">
+        <h4 class="text-3xl font-bold text-purple-600">@Model.UpcomingInterviews</h4>
+        <p class="mt-2 text-gray-700 font-medium">Upcoming Interviews</p>
     </div>
 </div>

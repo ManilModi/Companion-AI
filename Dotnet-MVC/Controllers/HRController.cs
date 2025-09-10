@@ -118,5 +118,74 @@ namespace DotnetMVCApp.Controllers
 
             return View("~/Views/User/HR/Applicants.cshtml", model);
         }
+
+
+        [HttpGet]
+        public IActionResult EditJob(int jobId)
+        {
+            var job = _jobRepo.GetJobById(jobId);
+            if (job == null) return NotFound();
+
+            var model = new CreateJobViewModel
+            {
+                JobId = job.JobId,
+                JobTitle = job.JobTitle,
+                JobDescription = job.JobDescription,
+                TechStacks = job.TechStacks,
+                SkillsRequired = string.Join(", ",
+                    JsonSerializer.Deserialize<List<string>>(job.SkillsRequired ?? "[]") ?? new List<string>()),
+                OpenTime = job.OpenTime,
+                CloseTime = job.CloseTime
+            };
+
+            return View("~/Views/User/HR/EditJob.cshtml", model);
+        }
+
+
+        [HttpPost]
+        public IActionResult EditJob(int jobId, CreateJobViewModel model)
+        {
+
+
+            if (!ModelState.IsValid)
+                return View("~/Views/User/HR/EditJob.cshtml", model);
+
+            var job = _jobRepo.GetJobById(jobId);
+
+            // TEMP: Disable Unauthorized until authentication is real
+            if (job == null /* || job.PostedByUserId != GetCurrentHrId() */)
+                return NotFound();
+
+            job.JobTitle = model.JobTitle;
+            job.JobDescription = model.JobDescription;
+            job.TechStacks = model.TechStacks;
+            job.SkillsRequired = JsonSerializer.Serialize(
+                model.SkillsRequired?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            );
+            job.OpenTime = DateTime.SpecifyKind(model.OpenTime, DateTimeKind.Utc);
+            job.CloseTime = DateTime.SpecifyKind(model.CloseTime, DateTimeKind.Utc);
+
+            _jobRepo.Update(job);
+
+            return RedirectToAction("JobListings"); // ✅ fixed
+        }
+
+        [HttpPost]
+        public IActionResult DeleteJob(int jobId)
+        {
+            Console.WriteLine(jobId);
+            var job = _jobRepo.GetJobById(jobId);
+
+            // TEMP: Disable Unauthorized until authentication is real
+            if (job == null /* || job.PostedByUserId != GetCurrentHrId() */)
+                return NotFound();
+
+            _jobRepo.Delete(jobId);
+
+            return RedirectToAction("JobListings"); // ✅ fixed
+        }
+
+
+
     }
 }
