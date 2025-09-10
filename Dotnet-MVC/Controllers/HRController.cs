@@ -1,7 +1,8 @@
-﻿using DotnetMVCApp.Repositories;
+﻿using DotnetMVCApp.Models;
+using DotnetMVCApp.Repositories;
 using DotnetMVCApp.ViewModels.HR;
-using DotnetMVCApp.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace DotnetMVCApp.Controllers
@@ -23,10 +24,13 @@ namespace DotnetMVCApp.Controllers
 
         private int GetCurrentHrId()
         {
-            // Replace with real authentication
-            //return int.Parse(User.FindFirst("UserId").Value);
-            return 1;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out int hrId))
+                return hrId;
+
+            return 0;
         }
+
 
         public IActionResult Overview()
         {
@@ -134,8 +138,8 @@ namespace DotnetMVCApp.Controllers
                 TechStacks = job.TechStacks,
                 SkillsRequired = string.Join(", ",
                     JsonSerializer.Deserialize<List<string>>(job.SkillsRequired ?? "[]") ?? new List<string>()),
-                OpenTime = job.OpenTime,
-                CloseTime = job.CloseTime
+                OpenTime = job.OpenTime.ToUniversalTime(),
+                CloseTime = job.CloseTime.ToUniversalTime(),
             };
 
             return View("~/Views/User/HR/EditJob.cshtml", model);

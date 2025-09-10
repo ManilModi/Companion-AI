@@ -10,12 +10,28 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddHttpClient();
+
 // Add User repository
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IJobRepo, JobRepo>();
 builder.Services.AddScoped<IInterviewrepo, InterviewRepo>();
 builder.Services.AddScoped<IFeedbackrepo,FeedbackRepo>();
 builder.Services.AddScoped<IUserJobRepo, UserJobRepo>();
+builder.Services.AddSession();
+
+
+builder.Services.AddSingleton(x =>
+{
+    var config = builder.Configuration.GetSection("Cloudinary");
+    return new CloudinaryDotNet.Cloudinary(
+        new CloudinaryDotNet.Account(
+            config["CloudName"],
+            config["ApiKey"],
+            config["ApiSecret"]
+        )
+    );
+});
 
 
 
@@ -33,13 +49,14 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
+    app.UseDeveloperExceptionPage();
     // app.UseHttpsRedirection();
 }
 
 app.UseStaticFiles();
 
 app.UseRouting();
-
+app.UseSession();
 // Enable Cookie Auth
 app.UseAuthentication();
 app.UseAuthorization();

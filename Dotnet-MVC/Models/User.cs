@@ -11,6 +11,8 @@ namespace DotnetMVCApp.Models
         [Key]
         public int UserId { get; set; }
 
+        public string Username { get; set; }
+
         [Required, EmailAddress]
         public string Email { get; set; }
 

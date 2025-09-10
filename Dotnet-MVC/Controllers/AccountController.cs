@@ -69,6 +69,7 @@ public class AccountController : Controller
 
         var user = new User
         {
+            Username = model.Username,
             Email = model.Email,
             Password = hashedPassword,
             Salt = salt,
@@ -88,20 +89,13 @@ public class AccountController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Login(LoginViewModel model)
+    public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
     {
         if (!ModelState.IsValid)
             return View(model);
 
         var user = _userRepo.GetUserByEmail(model.Email);
-        if (user == null)
-        {
-            ModelState.AddModelError("", "Invalid email or password");
-            return View(model);
-        }
-
-        string hashedInput = HashPassword(model.Password, user.Salt);
-        if (hashedInput != user.Password)
+        if (user == null || HashPassword(model.Password, user.Salt) != user.Password)
         {
             ModelState.AddModelError("", "Invalid email or password");
             return View(model);
@@ -123,8 +117,17 @@ public class AccountController : Controller
             ExpiresUtc = DateTime.UtcNow.AddHours(2)
         });
 
-        return RedirectToAction("Index", "Home");
+        // Role-based redirect (ignore ReturnUrl)
+        return user.Role switch
+        {
+            UserRole.HR => RedirectToAction("Overview", "HR"),
+            UserRole.Candidate => RedirectToAction("Dashboard", "Candidate"),
+            UserRole.Admin => RedirectToAction("Index", "Admin"),
+            _ => RedirectToAction("Index", "Home")
+        };
     }
+
+
 
 
     // --------- Logout ----------
