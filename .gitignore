@@ -58,3 +58,5 @@ nunit-*.xml
 .env
 venv/
 Resumes/
+/Dotnet-MVC/appsettings.json
+/Dotnet-MVC/appsettings.json
