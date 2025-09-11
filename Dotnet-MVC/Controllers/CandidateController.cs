@@ -16,13 +16,15 @@ namespace DotnetMVCApp.Controllers
         private readonly Cloudinary _cloudinary;
         private readonly HttpClient _httpClient;
         private readonly IJobRepo _jobRepo; 
+        private readonly IUserJobRepo _userJobRepo;
 
-        public CandidateController(IUserRepo userRepo, IJobRepo jobRepo, Cloudinary cloudinary, IHttpClientFactory httpClientFactory)
+        public CandidateController(IUserRepo userRepo, IJobRepo jobRepo, IUserJobRepo userJobRepo, Cloudinary cloudinary, IHttpClientFactory httpClientFactory)
         {
             _userRepo = userRepo;
             _cloudinary = cloudinary;
             _httpClient = httpClientFactory.CreateClient();
             _jobRepo = jobRepo;
+            _userJobRepo = userJobRepo;
         }
 
         // Candidate Dashboard
@@ -153,10 +155,18 @@ namespace DotnetMVCApp.Controllers
             return File(fileBytes, "application/octet-stream", fileName);
         }
 
+
         [HttpGet]
         public IActionResult JobSearch()
         {
             var jobs = _jobRepo.GetAllJobs();
+
+            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+            // get all jobIds applied by this user
+            var appliedJobIds = _userJobRepo.GetJobsByUser(userId)
+                                            .Select(uj => uj.JobId)
+                                            .ToHashSet();
 
             var model = jobs.Select(j => new JobSearchViewModel
             {
@@ -169,11 +179,66 @@ namespace DotnetMVCApp.Controllers
                 PostedDate = j.OpenTime,
                 Description = j.JobDescription ?? "",
                 Status = j.CloseTime > DateTime.Now ? "active" : "closed",
-                ApplicantsCount = j.Applicants?.Count ?? 0
+                ApplicantsCount = j.Applicants?.Count ?? 0,
+                HasApplied = appliedJobIds.Contains(j.JobId),
+
+                // 🔹 Newly added fields
+                TechStacks = j.TechStacks ?? "Not specified",
+                SkillsRequired = j.SkillsRequired ?? "Not specified",
+                OpenTime = j.OpenTime,
+                CloseTime = j.CloseTime
             }).ToList();
 
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
         }
+
+
+
+        [HttpGet]
+        public IActionResult ApplyJob(int id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+            {
+                TempData["Message"] = "You must be logged in to apply for a job.";
+                return RedirectToAction("Login", "Auth");
+            }
+
+            int userId = int.Parse(userIdClaim.Value);
+
+            // ✅ check if already applied
+            bool alreadyApplied = _userJobRepo.Exists(userId, id);
+            if (!alreadyApplied)
+            {
+                _userJobRepo.ApplyToJob(userId, id);
+                _userJobRepo.save();
+
+                TempData["Message"] = "Applied successfully!";
+            }
+            else
+            {
+                TempData["Message"] = "You have already applied for this job.";
+            }
+
+            return RedirectToAction("JobSearch");
+        }
+
+        [HttpPost]
+        public IActionResult WithdrawJob(int id)
+        {
+            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+            var userJob = _userJobRepo.GetByUserAndJob(userId, id);
+            if (userJob != null)
+            {
+                _userJobRepo.Delete(userJob);
+                _userJobRepo.save();
+            }
+
+            return RedirectToAction("JobSearch");
+        }
+
 
 
     }
