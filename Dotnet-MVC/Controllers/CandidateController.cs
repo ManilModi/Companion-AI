@@ -15,12 +15,14 @@ namespace DotnetMVCApp.Controllers
         private readonly IUserRepo _userRepo;
         private readonly Cloudinary _cloudinary;
         private readonly HttpClient _httpClient;
+        private readonly IJobRepo _jobRepo; 
 
-        public CandidateController(IUserRepo userRepo, Cloudinary cloudinary, IHttpClientFactory httpClientFactory)
+        public CandidateController(IUserRepo userRepo, IJobRepo jobRepo, Cloudinary cloudinary, IHttpClientFactory httpClientFactory)
         {
             _userRepo = userRepo;
             _cloudinary = cloudinary;
             _httpClient = httpClientFactory.CreateClient();
+            _jobRepo = jobRepo;
         }
 
         // Candidate Dashboard
@@ -150,5 +152,29 @@ namespace DotnetMVCApp.Controllers
 
             return File(fileBytes, "application/octet-stream", fileName);
         }
+
+        [HttpGet]
+        public IActionResult JobSearch()
+        {
+            var jobs = _jobRepo.GetAllJobs();
+
+            var model = jobs.Select(j => new JobSearchViewModel
+            {
+                JobId = j.JobId,
+                JobTitle = j.JobTitle,
+                Company = j.CompanyName ?? "Default Company",
+                Location = j.Location ?? "Not specified",
+                JobType = j.JobType ?? "Full time",
+                SalaryRange = j.SalaryRange ?? "$ Not specified",
+                PostedDate = j.OpenTime,
+                Description = j.JobDescription ?? "",
+                Status = j.CloseTime > DateTime.Now ? "active" : "closed",
+                ApplicantsCount = j.Applicants?.Count ?? 0
+            }).ToList();
+
+            return View("~/Views/User/Candidate/JobSearch.cshtml", model);
+        }
+
+
     }
 }

@@ -1,9 +1,20 @@
-﻿using DotnetMVCApp.Models;
+﻿using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using DotnetMVCApp.ViewModels.HR;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
+using System.Net.Http;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas.Parser;
+using iText.Kernel.Pdf.Canvas.Parser.Listener;
+
+
 
 namespace DotnetMVCApp.Controllers
 {
@@ -13,13 +24,15 @@ namespace DotnetMVCApp.Controllers
         private readonly IUserJobRepo _userJobRepo;
         private readonly IUserRepo _userRepo;
         private readonly IInterviewrepo _interviewRepo;
+        private readonly Cloudinary _cloudinary;
 
-        public HRController(IJobRepo jobRepo, IUserJobRepo userJobRepo, IUserRepo userRepo, IInterviewrepo interviewRepo)
+        public HRController(IJobRepo jobRepo, IUserJobRepo userJobRepo, IUserRepo userRepo, IInterviewrepo interviewRepo, Cloudinary cloudinary)
         {
             _jobRepo = jobRepo;
             _userJobRepo = userJobRepo;
             _userRepo = userRepo;
             _interviewRepo = interviewRepo;
+            _cloudinary = cloudinary;
         }
 
         private int GetCurrentHrId()
@@ -52,6 +65,29 @@ namespace DotnetMVCApp.Controllers
             return View("~/Views/User/HR/Overview.cshtml", model);
         }
 
+        private string UploadJobDescriptionToCloudinary(string jobDescription, string fileName)
+        {
+            // Create temp file
+            var tempPath = Path.Combine(Path.GetTempPath(), fileName + ".txt");
+            System.IO.File.WriteAllText(tempPath, jobDescription, Encoding.UTF8);
+
+            // Upload to Cloudinary
+            var uploadParams = new RawUploadParams()
+            {
+                File = new FileDescription(tempPath),
+                Folder = "JDs"
+            };
+
+            var uploadResult = _cloudinary.Upload(uploadParams);
+
+            // Delete temp file
+            if (System.IO.File.Exists(tempPath))
+                System.IO.File.Delete(tempPath);
+
+            return uploadResult.SecureUrl?.ToString();
+        }
+
+
         [HttpGet]
         public IActionResult CreateJob()
         {
@@ -64,14 +100,17 @@ namespace DotnetMVCApp.Controllers
             if (!ModelState.IsValid)
                 return View("~/Views/User/HR/CreateJob.cshtml", model);
 
+            // Upload JD to Cloudinary
+            string jdUrl = UploadJobDescriptionToCloudinary(model.JobDescription, model.JobTitle.Replace(" ", "_"));
+
             var job = new Job
             {
-                JobTitle = model.JobTitle,   // ✅ set JobTitle
-                JobDescription = model.JobDescription,
+                JobTitle = model.JobTitle,
+                JobDescription = jdUrl,
+                //JobDescriptionUrl = jdUrl,   // ✅ Store JD URL in DB
                 TechStacks = model.TechStacks,
                 SkillsRequired = JsonSerializer.Serialize(
-                    model.SkillsRequired?
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    model.SkillsRequired?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 ),
                 OpenTime = DateTime.SpecifyKind(model.OpenTime, DateTimeKind.Utc),
                 CloseTime = DateTime.SpecifyKind(model.CloseTime, DateTimeKind.Utc),
@@ -84,23 +123,81 @@ namespace DotnetMVCApp.Controllers
 
 
 
-
-        public IActionResult JobListings()
+        [HttpGet]
+        public async Task<IActionResult> JobListings()
         {
             int hrId = GetCurrentHrId();
 
-            var jobs = _jobRepo.GetAllJobs().Where(j => j.PostedByUserId == hrId).ToList();
+            var jobs = _jobRepo.GetAllJobs()
+                               .Where(j => j.PostedByUserId == hrId)
+                               .ToList();
 
-            var model = jobs.Select(j => new JobListingViewModel
+            var model = new List<JobListingViewModel>();
+
+            foreach (var j in jobs)
             {
-                JobId = j.JobId,
-                JobTitle = j.JobTitle,             // ✅ include JobTitle
-                JobDescription = j.JobDescription,
-                TechStacks = j.TechStacks,
-                OpenTime = j.OpenTime,
-                CloseTime = j.CloseTime,
-                Status = j.CloseTime > DateTime.Now ? "Active" : "Closed"
-            });
+                string jdText = "[No job description]";
+
+                if (!string.IsNullOrEmpty(j.JobDescription))
+                {
+                    try
+                    {
+                        using var httpClient = new HttpClient();
+                        var fileBytes = await httpClient.GetByteArrayAsync(j.JobDescription); // directly from URL
+
+                        if (j.JobDescription.EndsWith(".txt"))
+                        {
+                            jdText = System.Text.Encoding.UTF8.GetString(fileBytes);
+                        }
+                        else if (j.JobDescription.EndsWith(".docx"))
+                        {
+                            using var ms = new MemoryStream(fileBytes);
+                            using var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(ms, false);
+                            jdText = string.Join(" ",
+                                doc.MainDocumentPart.Document.Body
+                                   .Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
+                                   .Select(p => p.InnerText));
+                        }
+                        else if (j.JobDescription.EndsWith(".pdf"))
+                        {
+                            using var ms = new MemoryStream(fileBytes);
+                            using var pdfReader = new PdfReader(ms);
+                            using var pdfDoc = new PdfDocument(pdfReader);
+                            var sb = new StringBuilder();
+
+                            for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
+                            {
+                                var strategy = new SimpleTextExtractionStrategy();
+                                string text = PdfTextExtractor.GetTextFromPage(pdfDoc.GetPage(i), strategy);
+                                sb.AppendLine(text);
+                            }
+
+                            jdText = sb.ToString();
+                        }
+
+                        else
+                        {
+                            jdText = "[Unsupported file format]";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        jdText = $"[Error fetching JD: {ex.Message}]";
+                    }
+                }
+
+
+                model.Add(new JobListingViewModel
+                {
+                    JobId = j.JobId,
+                    JobTitle = j.JobTitle,
+                    JobDescription = jdText,  // 👈 actual JD text
+                    TechStacks = j.TechStacks,
+                    OpenTime = j.OpenTime,
+                    CloseTime = j.CloseTime,
+                    Status = j.CloseTime > DateTime.Now ? "Active" : "Closed"
+                });
+            }
 
             return View("~/Views/User/HR/JobListings.cshtml", model);
         }
@@ -125,16 +222,65 @@ namespace DotnetMVCApp.Controllers
 
 
         [HttpGet]
-        public IActionResult EditJob(int jobId)
+        public async Task<IActionResult> EditJob(int jobId)
         {
             var job = _jobRepo.GetJobById(jobId);
             if (job == null) return NotFound();
+
+            string jdText = "[No job description]";
+
+            if (!string.IsNullOrEmpty(job.JobDescription))
+            {
+                try
+                {
+                    using var httpClient = new HttpClient();
+                    var fileBytes = await httpClient.GetByteArrayAsync(job.JobDescription);
+
+                    if (job.JobDescription.EndsWith(".txt"))
+                    {
+                        jdText = Encoding.UTF8.GetString(fileBytes);
+                    }
+                    else if (job.JobDescription.EndsWith(".docx"))
+                    {
+                        using var ms = new MemoryStream(fileBytes);
+                        using var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(ms, false);
+                        jdText = string.Join(" ",
+                            doc.MainDocumentPart.Document.Body
+                               .Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
+                               .Select(p => p.InnerText));
+                    }
+                    else if (job.JobDescription.EndsWith(".pdf"))
+                    {
+                        using var ms = new MemoryStream(fileBytes);
+                        using var pdfReader = new PdfReader(ms);
+                        using var pdfDoc = new PdfDocument(pdfReader);
+                        var sb = new StringBuilder();
+
+                        for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
+                        {
+                            var strategy = new SimpleTextExtractionStrategy();
+                            string text = PdfTextExtractor.GetTextFromPage(pdfDoc.GetPage(i), strategy);
+                            sb.AppendLine(text);
+                        }
+
+                        jdText = sb.ToString();
+                    }
+                    else
+                    {
+                        jdText = "[Unsupported file format]";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    jdText = $"[Error fetching JD: {ex.Message}]";
+                }
+            }
 
             var model = new CreateJobViewModel
             {
                 JobId = job.JobId,
                 JobTitle = job.JobTitle,
-                JobDescription = job.JobDescription,
+                JobDescription = jdText,   // 👈 put text, not URL
                 TechStacks = job.TechStacks,
                 SkillsRequired = string.Join(", ",
                     JsonSerializer.Deserialize<List<string>>(job.SkillsRequired ?? "[]") ?? new List<string>()),
@@ -149,19 +295,18 @@ namespace DotnetMVCApp.Controllers
         [HttpPost]
         public IActionResult EditJob(int jobId, CreateJobViewModel model)
         {
-
-
             if (!ModelState.IsValid)
                 return View("~/Views/User/HR/EditJob.cshtml", model);
 
             var job = _jobRepo.GetJobById(jobId);
+            if (job == null) return NotFound();
 
-            // TEMP: Disable Unauthorized until authentication is real
-            if (job == null /* || job.PostedByUserId != GetCurrentHrId() */)
-                return NotFound();
+            // Upload updated JD to Cloudinary
+            string jdUrl = UploadJobDescriptionToCloudinary(model.JobDescription, model.JobTitle.Replace(" ", "_"));
 
             job.JobTitle = model.JobTitle;
-            job.JobDescription = model.JobDescription;
+            job.JobDescription = jdUrl;
+            //job.JobDescriptionUrl = jdUrl;  // ✅ Update JD URL
             job.TechStacks = model.TechStacks;
             job.SkillsRequired = JsonSerializer.Serialize(
                 model.SkillsRequired?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -171,7 +316,7 @@ namespace DotnetMVCApp.Controllers
 
             _jobRepo.Update(job);
 
-            return RedirectToAction("JobListings"); // ✅ fixed
+            return RedirectToAction("JobListings");
         }
 
         [HttpPost]

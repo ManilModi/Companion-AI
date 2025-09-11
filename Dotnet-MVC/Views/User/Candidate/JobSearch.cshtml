@@ -1,0 +1,43 @@
+﻿@model List<DotnetMVCApp.ViewModels.Candidate.JobSearchViewModel>
+
+<div class="p-8 text-white bg-gray-900 min-h-screen">
+    <h1 class="text-3xl font-bold mb-6">Find Your Dream Job</h1>
+
+    <!-- Search + Filter -->
+    <div class="flex items-center mb-6 space-x-4">
+        <input type="text" placeholder="Search jobs, companies, or keywords..."
+               class="flex-1 px-4 py-2 rounded-xl bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-indigo-500" />
+        <button class="px-4 py-2 bg-blue-600 rounded-xl hover:bg-blue-500">Filters</button>
+    </div>
+
+    <p class="text-gray-400 mb-4">Showing @Model.Count jobs</p>
+
+    <div class="space-y-4">
+        @foreach (var job in Model)
+        {
+            <div class="bg-gray-800 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center">
+                <div>
+                    <h2 class="text-xl font-semibold">@job.JobTitle</h2>
+                    <p class="text-gray-400">@job.Company</p>
+                    <div class="flex items-center text-sm text-gray-500 space-x-4 mt-2">
+                        <span>@job.Location</span>
+                        <span>@job.JobType</span>
+                        <span>@job.SalaryRange</span>
+                        <span>@(DateTime.Now.Subtract(job.PostedDate).Days) days ago</span>
+                    </div>
+                    <p class="mt-2 text-gray-300">@job.Description</p>
+                    <p class="text-sm text-gray-500">@job.ApplicantsCount applicants</p>
+                </div>
+
+                <div class="flex space-x-3 mt-4 md:mt-0">
+                    <span class="px-3 py-1 text-sm rounded-full @(job.Status == "active" ? "bg-green-600" : "bg-red-600")">
+                        @job.Status
+                    </span>
+                    <a href="@Url.Action("JobDetails", "Candidate", new { id = job.JobId })" class="px-4 py-2 bg-gray-700 rounded-xl hover:bg-gray-600">View Details</a>
+                    <a href="@Url.Action("MockInterview", "Candidate", new { id = job.JobId })" class="px-4 py-2 bg-purple-700 rounded-xl hover:bg-purple-600">Mock Interview</a>
+                    <a href="@Url.Action("ApplyJob", "Candidate", new { id = job.JobId })" class="px-4 py-2 bg-blue-600 rounded-xl hover:bg-blue-500">Apply Now</a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
