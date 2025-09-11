@@ -16,6 +16,5 @@
 
         public IEnumerable<UserJob> GetJobsByUser(int userId);
 
-        void save();
     }
 }

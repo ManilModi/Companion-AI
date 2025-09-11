@@ -1,20 +1,25 @@
-﻿using DotnetMVCApp.Data;
-using DotnetMVCApp.Models;
-using System.Linq;
-
-namespace DotnetMVCApp.Repositories
+﻿namespace DotnetMVCApp.Repositories
 {
+    using DotnetMVCApp.Data;
+    using DotnetMVCApp.Models;
+    using System.Collections.Generic;
+    using System.Linq;
+
     public class UserJobRepo : IUserJobRepo
     {
         private readonly AppDbContext _context;
-        public IJobRepo jobRepo { get; }
-        public IUserRepo userRepo { get; }
+
+        private readonly IJobRepo _jobRepo;
+        private readonly IUserRepo _userRepo;
+
+        public IJobRepo jobRepo => _jobRepo;
+        public IUserRepo userRepo => _userRepo;
 
         public UserJobRepo(AppDbContext context, IJobRepo jobRepo, IUserRepo userRepo)
         {
             _context = context;
-            this.jobRepo = jobRepo;
-            this.userRepo = userRepo;
+            _jobRepo = jobRepo;
+            _userRepo = userRepo;
         }
 
         public void ApplyToJob(int userId, int jobId, string? scoreJson = null)
@@ -30,7 +35,6 @@ namespace DotnetMVCApp.Repositories
             };
 
             _context.UserJobs.Add(userJob);
-            save();
         }
 
         public bool HasApplied(int userId, int jobId)
@@ -40,8 +44,7 @@ namespace DotnetMVCApp.Repositories
 
         public bool Exists(int userId, int jobId)
         {
-            return _context.UserJobs
-                .Any(uj => uj.UserId == userId && uj.JobId == jobId);
+            return _context.UserJobs.Any(uj => uj.UserId == userId && uj.JobId == jobId);
         }
 
         public IEnumerable<UserJob> GetJobsByUser(int userId)
@@ -57,12 +60,6 @@ namespace DotnetMVCApp.Repositories
         public void Delete(UserJob userJob)
         {
             _context.UserJobs.Remove(userJob);
-        }
-
-
-        public void save()
-        {
-            _context.SaveChanges();
         }
     }
 }

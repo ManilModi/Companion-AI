@@ -1,4 +1,5 @@
-﻿using CloudinaryDotNet;
+﻿using AutoMapper;
+using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
@@ -15,16 +16,21 @@ namespace DotnetMVCApp.Controllers
         private readonly IUserRepo _userRepo;
         private readonly Cloudinary _cloudinary;
         private readonly HttpClient _httpClient;
-        private readonly IJobRepo _jobRepo; 
-        private readonly IUserJobRepo _userJobRepo;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public CandidateController(IUserRepo userRepo, IJobRepo jobRepo, IUserJobRepo userJobRepo, Cloudinary cloudinary, IHttpClientFactory httpClientFactory)
+        public CandidateController(
+            IUserRepo userRepo,
+            IUnitOfWork unitOfWork,
+            Cloudinary cloudinary,
+            IHttpClientFactory httpClientFactory,
+            IMapper mapper)
         {
             _userRepo = userRepo;
+            _unitOfWork = unitOfWork;
             _cloudinary = cloudinary;
             _httpClient = httpClientFactory.CreateClient();
-            _jobRepo = jobRepo;
-            _userJobRepo = userJobRepo;
+            _mapper = mapper;
         }
 
         // Candidate Dashboard
@@ -124,6 +130,7 @@ namespace DotnetMVCApp.Controllers
                 user.ResumeUrl = resumeUrl;
                 user.ExtractedInfo = responseString;
                 _userRepo.Update(user);
+                _unitOfWork.Save();
             }
 
             TempData["Success"] = "Resume uploaded and parsed successfully!";
@@ -155,44 +162,29 @@ namespace DotnetMVCApp.Controllers
             return File(fileBytes, "application/octet-stream", fileName);
         }
 
-
         [HttpGet]
         public IActionResult JobSearch()
         {
-            var jobs = _jobRepo.GetAllJobs();
-
+            var jobs = _unitOfWork.Jobs.GetAllJobs();
             int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-            // get all jobIds applied by this user
-            var appliedJobIds = _userJobRepo.GetJobsByUser(userId)
-                                            .Select(uj => uj.JobId)
-                                            .ToHashSet();
+            var appliedJobIds = _unitOfWork.UserJobs.GetJobsByUser(userId)
+                                                   .Select(uj => uj.JobId)
+                                                   .ToHashSet();
 
-            var model = jobs.Select(j => new JobSearchViewModel
+            // ✅ Use AutoMapper
+            var model = _mapper.Map<List<JobSearchViewModel>>(jobs);
+
+            // add manual fields not in Job
+            foreach (var jobVm in model)
             {
-                JobId = j.JobId,
-                JobTitle = j.JobTitle,
-                Company = j.Company ?? "Default Company",
-                Location = j.Location ?? "Not specified",
-                JobType = j.JobType ?? "Full time",
-                SalaryRange = j.SalaryRange ?? "$ Not specified",
-                PostedDate = j.OpenTime,
-                Description = j.JobDescription ?? "",
-                Status = j.CloseTime > DateTime.Now ? "active" : "closed",
-                ApplicantsCount = j.Applicants?.Count ?? 0,
-                HasApplied = appliedJobIds.Contains(j.JobId),
-
-                // 🔹 Newly added fields
-                TechStacks = j.TechStacks ?? "Not specified",
-                SkillsRequired = j.SkillsRequired ?? "Not specified",
-                OpenTime = j.OpenTime,
-                CloseTime = j.CloseTime
-            }).ToList();
+                jobVm.HasApplied = appliedJobIds.Contains(jobVm.JobId);
+                jobVm.Status = jobVm.CloseTime > DateTime.Now ? "active" : "closed";
+                jobVm.ApplicantsCount = jobs.First(j => j.JobId == jobVm.JobId).Applicants?.Count ?? 0;
+            }
 
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
         }
-
-
 
         [HttpGet]
         public IActionResult ApplyJob(int id)
@@ -207,13 +199,11 @@ namespace DotnetMVCApp.Controllers
 
             int userId = int.Parse(userIdClaim.Value);
 
-            // ✅ check if already applied
-            bool alreadyApplied = _userJobRepo.Exists(userId, id);
+            bool alreadyApplied = _unitOfWork.UserJobs.Exists(userId, id);
             if (!alreadyApplied)
             {
-                _userJobRepo.ApplyToJob(userId, id);
-                _userJobRepo.save();
-
+                _unitOfWork.UserJobs.ApplyToJob(userId, id);
+                _unitOfWork.Save();
                 TempData["Message"] = "Applied successfully!";
             }
             else
@@ -229,17 +219,14 @@ namespace DotnetMVCApp.Controllers
         {
             int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-            var userJob = _userJobRepo.GetByUserAndJob(userId, id);
+            var userJob = _unitOfWork.UserJobs.GetByUserAndJob(userId, id);
             if (userJob != null)
             {
-                _userJobRepo.Delete(userJob);
-                _userJobRepo.save();
+                _unitOfWork.UserJobs.Delete(userJob);
+                _unitOfWork.Save();
             }
 
             return RedirectToAction("JobSearch");
         }
-
-
-
     }
 }
