@@ -14,6 +14,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-800">@job.JobTitle</h3>
+                    <p class="text-sm text-gray-600">Company: @job.Company</p>
                     <p class="text-sm text-gray-600">Open: @job.OpenTime.ToShortDateString()</p>
                     <p class="text-sm text-gray-600">Close: @job.CloseTime.ToShortDateString()</p>
                 </div>
@@ -37,8 +38,18 @@
                 <div class="bg-gray-50 border rounded-lg p-6 shadow-md">
                     <h4 class="text-xl font-semibold text-gray-800 mb-3">Job Details</h4>
 
+                    <div class="grid grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
+                        <p><strong>Company:</strong> @job.Company</p>
+                        <p><strong>Location:</strong> @job.Location</p>
+                        <p><strong>Job Type:</strong> @job.JobType</p>
+                        <p><strong>Salary Range:</strong> @job.SalaryRange</p>
+                    </div>
+
                     <p class="text-gray-700 text-sm mb-2"><strong>Description:</strong></p>
                     <p class="text-gray-600 text-sm mb-4">@job.JobDescription</p>
+
+                    <p class="text-gray-700 text-sm mb-2"><strong>Skills Required:</strong></p>
+                    <p class="text-gray-600 text-sm mb-4">@job.SkillsRequired</p>
 
                     <p class="text-gray-700 text-sm mb-2"><strong>Tech Stacks:</strong></p>
                     <p class="text-gray-600 text-sm mb-4">@job.TechStacks</p>

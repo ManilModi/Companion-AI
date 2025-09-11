@@ -162,7 +162,7 @@ namespace DotnetMVCApp.Controllers
             {
                 JobId = j.JobId,
                 JobTitle = j.JobTitle,
-                Company = j.CompanyName ?? "Default Company",
+                Company = j.Company ?? "Default Company",
                 Location = j.Location ?? "Not specified",
                 JobType = j.JobType ?? "Full time",
                 SalaryRange = j.SalaryRange ?? "$ Not specified",
