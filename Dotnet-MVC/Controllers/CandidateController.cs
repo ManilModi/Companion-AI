@@ -163,7 +163,7 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult JobSearch()
+        public async Task<IActionResult> JobSearch()
         {
             var jobs = _unitOfWork.Jobs.GetAllJobs();
             int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
@@ -172,19 +172,46 @@ namespace DotnetMVCApp.Controllers
                                                    .Select(uj => uj.JobId)
                                                    .ToHashSet();
 
-            // ✅ Use AutoMapper
             var model = _mapper.Map<List<JobSearchViewModel>>(jobs);
 
-            // add manual fields not in Job
+            using var httpClient = new HttpClient();
+
             foreach (var jobVm in model)
             {
                 jobVm.HasApplied = appliedJobIds.Contains(jobVm.JobId);
                 jobVm.Status = jobVm.CloseTime > DateTime.Now ? "active" : "closed";
                 jobVm.ApplicantsCount = jobs.First(j => j.JobId == jobVm.JobId).Applicants?.Count ?? 0;
+
+                var jobEntity = jobs.First(j => j.JobId == jobVm.JobId);
+
+                if (!string.IsNullOrEmpty(jobEntity.JobDescription))
+                {
+                    try
+                    {
+                        var response = await httpClient.GetAsync(jobEntity.JobDescription);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            jobVm.Description = await response.Content.ReadAsStringAsync();
+                        }
+                        else
+                        {
+                            jobVm.Description = "Unable to load description.";
+                        }
+                    }
+                    catch
+                    {
+                        jobVm.Description = "Error fetching description.";
+                    }
+                }
+                else
+                {
+                    jobVm.Description = "No description provided.";
+                }
             }
 
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
         }
+
 
         [HttpGet]
         public IActionResult ApplyJob(int id)
