@@ -1,9 +1,10 @@
-﻿using CloudinaryDotNet;
+﻿using AutoMapper;
+using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
-using DotnetMVCApp.Attributes;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using DotnetMVCApp.ViewModels.Candidate;
+using DotnetMVCApp.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System.Net.Http.Headers;
@@ -11,23 +12,30 @@ using System.Security.Claims;
 
 namespace DotnetMVCApp.Controllers
 {
-    [SessionAuthorize("Candidate")]
+    [SessionAuthorize("Candidate")] // Only candidates can access
     public class CandidateController : Controller
     {
         private readonly IUserRepo _userRepo;
         private readonly Cloudinary _cloudinary;
         private readonly HttpClient _httpClient;
-        private readonly IJobRepo _jobRepo;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public CandidateController(IUserRepo userRepo, IJobRepo jobRepo, Cloudinary cloudinary, IHttpClientFactory httpClientFactory)
+        public CandidateController(
+            IUserRepo userRepo,
+            IUnitOfWork unitOfWork,
+            Cloudinary cloudinary,
+            IHttpClientFactory httpClientFactory,
+            IMapper mapper)
         {
             _userRepo = userRepo;
+            _unitOfWork = unitOfWork;
             _cloudinary = cloudinary;
             _httpClient = httpClientFactory.CreateClient();
-            _jobRepo = jobRepo;
+            _mapper = mapper;
         }
 
-        // --- Helper: Get current candidate userId from cookie or session ---
+        // ----------------- Helper -----------------
         private int GetCurrentUserId()
         {
             // 1️⃣ Try cookie authentication
@@ -78,20 +86,16 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UploadResume(IFormFile resumeFile)
+        public async Task<IActionResult> UploadResume(IFormFile resumeFile, int userId)
         {
-            int userId = GetCurrentUserId();
-            if (userId == 0) return RedirectToAction("Login", "Account");
-
             if (resumeFile == null || resumeFile.Length == 0)
             {
                 TempData["Error"] = "Please select a valid resume file.";
-                return RedirectToAction("Dashboard");
+                return RedirectToAction("Dashboard", new { id = userId });
             }
 
             string resumeUrl;
 
-            // Upload resume to Cloudinary
             using (var stream = resumeFile.OpenReadStream())
             {
                 var uploadParams = new RawUploadParams
@@ -104,13 +108,12 @@ namespace DotnetMVCApp.Controllers
                 if (uploadResult.StatusCode != System.Net.HttpStatusCode.OK)
                 {
                     TempData["Error"] = "Resume upload failed. Try again.";
-                    return RedirectToAction("Dashboard");
+                    return RedirectToAction("Dashboard", new { id = userId });
                 }
 
                 resumeUrl = uploadResult.SecureUrl.ToString();
             }
 
-            // Send to FastAPI parser
             string responseString;
             using (var form = new MultipartFormDataContent())
             using (var stream = resumeFile.OpenReadStream())
@@ -123,67 +126,133 @@ namespace DotnetMVCApp.Controllers
                 if (!response.IsSuccessStatusCode)
                 {
                     TempData["Error"] = "Resume uploaded but parsing failed.";
-                    return RedirectToAction("Dashboard");
+                    return RedirectToAction("Dashboard", new { id = userId });
                 }
 
                 responseString = await response.Content.ReadAsStringAsync();
             }
 
-            // Save in DB
             var user = _userRepo.GetUserById(userId);
             if (user != null)
             {
                 user.ResumeUrl = resumeUrl;
                 user.ExtractedInfo = responseString;
                 _userRepo.Update(user);
+                _unitOfWork.Save();
             }
 
             TempData["Success"] = "Resume uploaded and parsed successfully!";
-            return RedirectToAction("Dashboard");
+            return RedirectToAction("Dashboard", new { id = userId });
         }
 
         [HttpGet]
-        public async Task<IActionResult> DownloadResume()
+        public async Task<IActionResult> DownloadResume(int userId)
         {
-            int userId = GetCurrentUserId();
-            if (userId == 0) return RedirectToAction("Login", "Account");
-
             var user = _userRepo.GetUserById(userId);
-            if (user == null || string.IsNullOrEmpty(user.ResumeUrl)) return NotFound("Resume not found.");
+            if (user == null || string.IsNullOrEmpty(user.ResumeUrl))
+            {
+                return NotFound("Resume not found.");
+            }
 
             var response = await _httpClient.GetAsync(user.ResumeUrl);
-            if (!response.IsSuccessStatusCode) return NotFound("Unable to download resume from storage.");
+            if (!response.IsSuccessStatusCode)
+            {
+                return NotFound("Unable to download resume from storage.");
+            }
 
             var fileBytes = await response.Content.ReadAsByteArrayAsync();
             var fileName = Path.GetFileName(user.ResumeUrl);
-            if (!fileName.Contains('.')) fileName += ".pdf";
+            if (!fileName.Contains('.'))
+            {
+                fileName += ".pdf";
+            }
 
             return File(fileBytes, "application/octet-stream", fileName);
         }
 
         [HttpGet]
-        public IActionResult JobSearch()
+        public async Task<IActionResult> JobSearch()
         {
             int userId = GetCurrentUserId();
-            if (userId == 0) return RedirectToAction("Login", "Account");
 
-            var jobs = _jobRepo.GetAllJobs();
+            var jobs = _unitOfWork.Jobs.GetAllJobs();
+            var appliedJobIds = _unitOfWork.UserJobs.GetJobsByUser(userId)
+                                                   .Select(uj => uj.JobId)
+                                                   .ToHashSet();
 
-            var model = jobs.Select(j => new JobSearchViewModel
+            var model = _mapper.Map<List<JobSearchViewModel>>(jobs);
+
+            using var httpClient = new HttpClient();
+
+            foreach (var jobVm in model)
             {
-                JobId = j.JobId,
-                JobTitle = j.JobTitle,
-                Company = j.Company ?? "Default Company",
-                Location = j.Location ?? "Not specified",
-                JobType = j.JobType ?? "Full time",
-                SalaryRange = j.SalaryRange ?? "$ Not specified",
-                PostedDate = j.OpenTime,
-                Description = j.JobDescription ?? "",
-                Status = j.CloseTime > DateTime.Now ? "active" : "closed",
-                ApplicantsCount = j.Applicants?.Count ?? 0
-            }).ToList();
+                jobVm.HasApplied = appliedJobIds.Contains(jobVm.JobId);
+                jobVm.Status = jobs.First(j => j.JobId == jobVm.JobId).CloseTime > DateTime.Now ? "active" : "closed";
+                jobVm.ApplicantsCount = jobs.First(j => j.JobId == jobVm.JobId).Applicants?.Count ?? 0;
+
+                var jobEntity = jobs.First(j => j.JobId == jobVm.JobId);
+
+                if (!string.IsNullOrEmpty(jobEntity.JobDescription))
+                {
+                    try
+                    {
+                        var response = await httpClient.GetAsync(jobEntity.JobDescription);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            jobVm.Description = await response.Content.ReadAsStringAsync();
+                        }
+                        else
+                        {
+                            jobVm.Description = "Unable to load description.";
+                        }
+                    }
+                    catch
+                    {
+                        jobVm.Description = "Error fetching description.";
+                    }
+                }
+                else
+                {
+                    jobVm.Description = "No description provided.";
+                }
+            }
 
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
+        }
+
+        [HttpGet]
+        public IActionResult ApplyJob(int id)
+        {
+            int userId = GetCurrentUserId();
+
+            bool alreadyApplied = _unitOfWork.UserJobs.Exists(userId, id);
+            if (!alreadyApplied)
+            {
+                _unitOfWork.UserJobs.ApplyToJob(userId, id);
+                _unitOfWork.Save();
+                TempData["Message"] = "Applied successfully!";
+            }
+            else
+            {
+                TempData["Message"] = "You have already applied for this job.";
+            }
+
+            return RedirectToAction("JobSearch");
+        }
+
+        [HttpPost]
+        public IActionResult WithdrawJob(int id)
+        {
+            int userId = GetCurrentUserId();
+
+            var userJob = _unitOfWork.UserJobs.GetByUserAndJob(userId, id);
+            if (userJob != null)
+            {
+                _unitOfWork.UserJobs.Delete(userJob);
+                _unitOfWork.Save();
+            }
+
+            return RedirectToAction("JobSearch");
         }
     }
 }
