@@ -2,6 +2,13 @@
 @{
     Layout = "~/Views/Shared/_HRLayout.cshtml";
     ViewData["Title"] = "Application Leaderboard";
+
+    int GetScore(Dictionary<string, int> scores, string key)
+    {
+        if (scores != null && scores.ContainsKey(key))
+            return scores[key];
+        return 0;
+    }
 }
 
 <h2 class="text-3xl font-bold mb-6 text-purple-500 flex items-center">
@@ -13,12 +20,9 @@
 <p class="text-gray-400 mb-6">Top performing candidates ranked by overall score</p>
 
 <div class="space-y-4">
-    @foreach (var applicant in Model.OrderByDescending(a => a.Scores != null && a.Scores.ContainsKey("TotalScore") ? a.Scores["TotalScore"] : 0).Select((a, i) => new { Applicant = a, Rank = i + 1 }))
+    @foreach (var applicant in Model.OrderByDescending(a => GetScore(a.Scores, "TotalScore")).Select((a, i) => new { Applicant = a, Rank = i + 1 }))
     {
-        var totalScore = applicant.Applicant.Scores != null && applicant.Applicant.Scores.ContainsKey("TotalScore")
-        ? applicant.Applicant.Scores["TotalScore"]
-        : 0;
-
+        var totalScore = GetScore(applicant.Applicant.Scores, "TotalScore");
         <div class="flex items-center justify-between bg-gray-800 text-white rounded-xl p-5 shadow-md hover:shadow-lg transition">
             <div class="flex items-center space-x-4">
                 <div class="text-2xl">
@@ -58,23 +62,23 @@
                 </div>
                 <div class="flex space-x-6 text-sm text-gray-300">
                     <div class="text-center">
-                        <p class="font-semibold">@((applicant.Applicant.Scores?["TechnicalSkills"]) ?? 0)</p>
+                        <p class="font-semibold">@GetScore(applicant.Applicant.Scores, "technical_skills")</p>
                         <p class="text-xs">Technical Skills</p>
                     </div>
                     <div class="text-center">
-                        <p class="font-semibold">@((applicant.Applicant.Scores?["Experience"]) ?? 0)</p>
+                        <p class="font-semibold">@GetScore(applicant.Applicant.Scores, "experience")</p>
                         <p class="text-xs">Experience</p>
                     </div>
                     <div class="text-center">
-                        <p class="font-semibold">@((applicant.Applicant.Scores?["Certifications"]) ?? 0)</p>
+                        <p class="font-semibold">@GetScore(applicant.Applicant.Scores, "certifications")</p>
                         <p class="text-xs">Certifications</p>
                     </div>
                     <div class="text-center">
-                        <p class="font-semibold">@((applicant.Applicant.Scores?["Projects"]) ?? 0)</p>
+                        <p class="font-semibold">@GetScore(applicant.Applicant.Scores, "projects")</p>
                         <p class="text-xs">Projects</p>
                     </div>
                     <div class="text-center">
-                        <p class="font-semibold">@((applicant.Applicant.Scores?["SoftSkills"]) ?? 0)</p>
+                        <p class="font-semibold">@GetScore(applicant.Applicant.Scores, "soft_skills")</p>
                         <p class="text-xs">Soft Skills</p>
                     </div>
                 </div>
@@ -83,7 +87,7 @@
             <div class="flex items-center space-x-4">
                 <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">submitted</span>
 
-                <!-- ✅ View Button with data-* attributes -->
+                <!-- ✅ View Button -->
                 <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded-lg text-sm font-medium transition view-candidate-btn"
                         data-name="@applicant.Applicant.Name"
                         data-email="@applicant.Applicant.Email"
@@ -166,36 +170,65 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const viewButtons = document.querySelectorAll('.view-candidate-btn');
+        const modal = document.getElementById('candidateDetailModal');
+        const closeModal = document.getElementById('closeCandidateModal');
 
-
-@section Scripts {
-    <script>
-        document.querySelectorAll('.view-candidate-btn').forEach(btn => {
+        viewButtons.forEach(btn => {
             btn.addEventListener('click', () => {
-                document.getElementById('candName').textContent = btn.dataset.name ?? "";
-                document.getElementById('candEmail').textContent = btn.dataset.email ?? "";
-                document.getElementById('candContact').textContent = btn.dataset.contact ?? "";
-                document.getElementById('candExperience').textContent = btn.dataset.expSummary ?? "";
-                document.getElementById('candExpYears').textContent = btn.dataset.expYears ?? "0";
-                document.getElementById('candResume').href = btn.dataset.resume ?? "#";
+                // Get data from button
+                document.getElementById('candName').textContent = btn.dataset.name || '';
+                document.getElementById('candEmail').textContent = btn.dataset.email || '';
+                document.getElementById('candContact').textContent = btn.dataset.contact || '';
+                document.getElementById('candExperience').textContent = btn.dataset.expSummary || '';
+                document.getElementById('candExpYears').textContent = btn.dataset.expYears || '';
 
-                const fillList = (id, data) => {
-                    const list = document.getElementById(id);
-                    list.innerHTML = "";
-                    (data ? data.split(',') : []).forEach(item => {
-                        if (item.trim()) list.innerHTML += `<li>${item}</li>`;
-                    });
-                };
-                fillList('candSkills', btn.dataset.skills);
-                fillList('candProjects', btn.dataset.projects);
-                fillList('candAchievements', btn.dataset.achievements);
+                // Fill skills
+                const skills = (btn.dataset.skills || '').split(',').filter(x => x.trim() !== '');
+                const skillsList = document.getElementById('candSkills');
+                skillsList.innerHTML = '';
+                skills.forEach(s => {
+                    const li = document.createElement('li');
+                    li.textContent = s.trim();
+                    skillsList.appendChild(li);
+                });
 
-                document.getElementById('candidateDetailModal').classList.remove('hidden');
+                // Fill projects
+                const projects = (btn.dataset.projects || '').split(',').filter(x => x.trim() !== '');
+                const projectsList = document.getElementById('candProjects');
+                projectsList.innerHTML = '';
+                projects.forEach(p => {
+                    const li = document.createElement('li');
+                    li.textContent = p.trim();
+                    projectsList.appendChild(li);
+                });
+
+                // Fill achievements
+                const achievements = (btn.dataset.achievements || '').split(',').filter(x => x.trim() !== '');
+                const achievementsList = document.getElementById('candAchievements');
+                achievementsList.innerHTML = '';
+                achievements.forEach(a => {
+                    const li = document.createElement('li');
+                    li.textContent = a.trim();
+                    achievementsList.appendChild(li);
+                });
+
+                // Resume link
+                document.getElementById('candResume').href = btn.dataset.resume || '#';
+
+                // Show modal
+                modal.classList.remove('hidden');
             });
         });
 
-        document.getElementById('closeCandidateModal').addEventListener('click', () => {
-            document.getElementById('candidateDetailModal').classList.add('hidden');
+        // Close modal
+        closeModal.addEventListener('click', () => modal.classList.add('hidden'));
+
+        // Also close if user clicks the dark background
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.add('hidden');
         });
-    </script>
-}
+    });
+</script>
