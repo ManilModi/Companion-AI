@@ -25,14 +25,16 @@ namespace DotnetMVCApp.Controllers
         private readonly IUserRepo _userRepo;
         private readonly IInterviewrepo _interviewRepo;
         private readonly Cloudinary _cloudinary;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public HRController(IJobRepo jobRepo, IUserJobRepo userJobRepo, IUserRepo userRepo, IInterviewrepo interviewRepo, Cloudinary cloudinary)
+        public HRController(IJobRepo jobRepo, IUserJobRepo userJobRepo, IUserRepo userRepo, IInterviewrepo interviewRepo, Cloudinary cloudinary, IUnitOfWork unitOfWork)
         {
             _jobRepo = jobRepo;
             _userJobRepo = userJobRepo;
             _userRepo = userRepo;
             _interviewRepo = interviewRepo;
             _cloudinary = cloudinary;
+            _unitOfWork = unitOfWork;
         }
 
         private int GetCurrentHrId()
@@ -193,21 +195,65 @@ namespace DotnetMVCApp.Controllers
             return View("~/Views/User/HR/JobListings.cshtml", model);
         }
 
+        [HttpGet]
         public IActionResult Applicants(int jobId)
         {
-            var job = _jobRepo.GetJobById(jobId);
+            var job = _unitOfWork.Jobs.GetJobWithApplicantsAndUsers(jobId);
             if (job == null || job.PostedByUserId != GetCurrentHrId())
                 return Unauthorized();
 
-            var model = job.Applicants.Select(a => new ApplicantViewModel
-            {
-                UserId = a.UserId,
-                Email = a.User.Email,
-                Feedback = a.User.Feedbacks.FirstOrDefault(f => f.JobId == jobId)?.FeedbackText
-            });
+            var applicants = job.Applicants
+                .Select(a =>
+                {
+                    ExtractedInfoModel extracted = new ExtractedInfoModel();
 
-            return View("~/Views/User/HR/Applicants.cshtml", model);
+                    if (!string.IsNullOrEmpty(a.User?.ExtractedInfo))
+                    {
+                        try
+                        {
+                            extracted = JsonSerializer.Deserialize<ExtractedInfoModel>(
+                             a.User.ExtractedInfo,
+                             new JsonSerializerOptions
+                             {
+                                 PropertyNameCaseInsensitive = true // ✅ flexible
+                             }
+                         ) ?? new ExtractedInfoModel();
+
+                        }
+                        catch
+                        {
+                            extracted = new ExtractedInfoModel(); // fallback
+                        }
+                    }
+
+                    return new ApplicantViewModel
+                    {
+                        UserId = a.UserId,
+                        Name = extracted?.Name ?? a.User?.Username ?? "",
+                        Email = extracted?.Email ?? a.User?.Email ?? "",
+                        ContactNo = extracted?.ContactNo ?? "",
+                        ResumeUrl = a.User?.ResumeUrl ?? "",
+                        Skills = extracted?.Skills ?? new List<string>(),
+                        ExperienceSummary = extracted?.ExperienceSummary ?? "",
+                        TotalExperienceYears = extracted?.TotalExperienceYears != null
+    ? (int?)Math.Round(extracted.TotalExperienceYears.Value)
+    : null,
+
+                        ProjectsBuilt = extracted?.ProjectsBuilt ?? new List<string>(),
+                        Achievements = extracted?.Achievements ?? new List<string>(),
+                        Scores = !string.IsNullOrEmpty(a.Score)
+                                    ? JsonSerializer.Deserialize<Dictionary<string, int>>(a.Score)
+                                    : null
+                    };
+                })
+                .OrderByDescending(a => a.Scores != null && a.Scores.ContainsKey("TotalScore")
+                                        ? a.Scores["TotalScore"] : 0)
+                .ToList();
+
+            return View("~/Views/User/HR/Applicants.cshtml", applicants);
         }
+
+
 
         [HttpGet]
         public async Task<IActionResult> EditJob(int jobId)

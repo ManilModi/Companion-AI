@@ -12,5 +12,11 @@
         public string Description { get; set; }
         public string Status { get; set; }
         public int ApplicantsCount { get; set; }
+        public bool HasApplied { get; set; }
+
+        public string TechStacks { get; set; }
+        public string SkillsRequired { get; set; }
+        public DateTime OpenTime { get; set; }
+        public DateTime CloseTime { get; set; }
     }
 }

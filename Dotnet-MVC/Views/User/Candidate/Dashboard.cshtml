@@ -1,171 +1,157 @@
 ﻿@model DotnetMVCApp.ViewModels.Candidate.DashboardViewModel
+@{
+    Layout = "~/Views/Shared/_CandidateLayout.cshtml";
+}
 
 <div class="flex min-h-screen bg-gray-900 text-white">
     <!-- Sidebar -->
-    <div class="w-64 bg-gray-800 flex flex-col h-screen">
+    <div class="w-64 bg-gray-800 flex flex-col">
         <div class="p-6 text-2xl font-bold text-indigo-400">
             Companion AI
         </div>
-
-        <!-- Navigation (scrollable if too long) -->
-        <nav class="flex-1 px-4 py-2 overflow-y-auto space-y-2">
-            <a href="#" class="block px-4 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-600 transition">Profile</a>
-            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700 transition">Job Search</a>
-            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700 transition">Job Insights</a>
-            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700 transition">Job Recommendations</a>
-            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700 transition">Career Recommender</a>
+        <nav class="flex-1 px-4 space-y-2">
+            <a href="#" class="block px-4 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-600">Profile</a>
+            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Job Search</a>
+            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Job Insights</a>
+            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Job Recommendations</a>
+            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Career Recommender</a>
         </nav>
-
-        <!-- Logout Button pinned to bottom -->
-        <div class="p-4">
-            <form asp-controller="Account" asp-action="Logout" method="post">
-                <button type="submit"
-                        class="w-full px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-500 transition shadow-md">
-                    Logout
-                </button>
-            </form>
-        </div>
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 p-8 overflow-y-auto">
+    <div class="flex-1 p-8">
         <!-- Top Bar (only name now) -->
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold">@Model.Name</h1>
         </div>
 
-        @if (string.IsNullOrEmpty(Model.ResumeUrl))
-        {
-            <!-- Upload Resume Form -->
-            <div class="bg-gray-800 rounded-2xl p-6 text-center">
-                <h2 class="text-xl font-semibold mb-4">Upload Your Resume</h2>
-                <form asp-controller="Candidate" asp-action="UploadResume" method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="userId" value="@Model.UserId" />
+@if (string.IsNullOrEmpty(Model.ResumeUrl))
+{
+    <!-- Upload Resume Form -->
+    <div class="bg-gray-800 rounded-2xl p-6 text-center">
+        <h2 class="text-xl font-semibold mb-4">Upload Your Resume</h2>
+        <form asp-controller="Candidate" asp-action="UploadResume" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="userId" value="@Model.UserId" />
 
-                    <!-- Stylish File Input -->
-                    <label class="cursor-pointer inline-block px-6 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition">
-                        Choose File
-                        <input type="file" name="resumeFile" accept=".pdf,.doc,.docx" class="hidden" onchange="this.nextElementSibling.innerText=this.files[0]?.name || 'Choose File'" />
-                    </label>
-                    <span class="ml-2 text-gray-400 text-sm">No file chosen</span>
+            <label class="cursor-pointer inline-block px-6 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition">
+                Choose File
+                <input type="file" name="resumeFile" accept=".pdf,.doc,.docx" class="hidden"
+                       onchange="document.getElementById('resumeFileName').innerText=this.files[0]?.name || 'No file chosen'" />
+            </label>
+            <span id="resumeFileName" class="ml-2 text-gray-400 text-sm">No file chosen</span>
 
-                    <button type="submit" class="ml-4 px-6 py-2 bg-indigo-600 rounded-xl hover:bg-indigo-500 transition">
-                        Upload & Parse Resume
-                    </button>
-                </form>
-            </div>
-        }
-        else
-        {
-            <!-- Profile & Skills -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Profile Card -->
-                <div class="bg-gray-800 rounded-2xl p-6 flex flex-col items-center">
-                    <!-- Large Avatar Circle -->
-                    <div class="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-3xl font-bold uppercase">
-                        @(string.IsNullOrEmpty(Model.Name) ? "" : Model.Name.Substring(0, 1))
-                    </div>
-
-                    <h2 class="mt-4 text-xl font-semibold">@Model.Name</h2>
-                    <p class="mt-2 text-gray-400">@Model.Email</p>
-                    @if (!string.IsNullOrEmpty(Model.ContactNo))
-                    {
-                        <p class="text-gray-400">@Model.ContactNo</p>
-                    }
-                    @if (!string.IsNullOrEmpty(Model.LinkedInProfileLink))
-                    {
-                        <a href="@Model.LinkedInProfileLink" class="text-indigo-400 hover:underline" target="_blank">
-                            LinkedIn Profile
-                        </a>
-                    }
-
-                    <!-- Resume Download -->
-                    <div class="mt-6 flex justify-center w-full">
-                        <a asp-controller="Candidate" asp-action="DownloadResume" asp-route-userId="@Model.UserId"
-                           class="px-6 py-2 bg-indigo-600 rounded-xl hover:bg-indigo-500 transition">
-                            Download Resume
-                        </a>
-                    </div>
-
-                    <!-- Update Resume Form -->
-                    <form asp-controller="Candidate" asp-action="UploadResume" method="post" enctype="multipart/form-data" class="mt-4 w-full text-center">
-                        <input type="hidden" name="userId" value="@Model.UserId" />
-
-                        <!-- Stylish File Input -->
-                        <label class="cursor-pointer inline-block px-6 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition">
-                            Choose File
-                            <input type="file" name="resumeFile" accept=".pdf,.doc,.docx" class="hidden" onchange="this.nextElementSibling.innerText=this.files[0]?.name || 'Choose File'" />
-                        </label>
-                        <span class="ml-2 text-gray-400 text-sm">No file chosen</span>
-
-                        <button type="submit" class="ml-4 px-6 py-2 bg-yellow-600 rounded-xl hover:bg-yellow-500 transition">
-                            Update Resume
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Skills & Experience -->
-                <div class="md:col-span-2 bg-gray-800 rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4">Skills</h3>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach (var skill in Model.Skills)
-                        {
-                            <span class="bg-indigo-700 px-3 py-1 rounded-full text-sm">@skill</span>
-                        }
-                        @if (!Model.Skills.Any())
-                        {
-                            <p class="text-gray-400">No skills extracted yet.</p>
-                        }
-                    </div>
-
-                    <h3 class="mt-6 text-lg font-semibold mb-2">Experience</h3>
-                    @if (!string.IsNullOrEmpty(Model.ExperienceSummary))
-                    {
-                        <p class="bg-gray-700 p-4 rounded-xl">@Model.ExperienceSummary</p>
-                    }
-                    @if (Model.TotalExperienceYears.HasValue)
-                    {
-                        <p class="mt-2 text-gray-400">Total: @Model.TotalExperienceYears years</p>
-                    }
-                </div>
-            </div>
-
-            <!-- Projects & Achievements -->
-            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-gray-800 rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4">Projects</h3>
-                    @if (Model.ProjectsBuilt.Any())
-                    {
-                        <ul class="list-disc list-inside space-y-2">
-                            @foreach (var proj in Model.ProjectsBuilt)
-                            {
-                                <li>@proj</li>
-                            }
-                        </ul>
-                    }
-                    else
-                    {
-                        <p class="text-gray-400">No projects available.</p>
-                    }
-                </div>
-
-                <div class="bg-gray-800 rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4">Achievements</h3>
-                    @if (Model.Achievements.Any())
-                    {
-                        <ul class="list-disc list-inside space-y-2">
-                            @foreach (var ach in Model.Achievements)
-                            {
-                                <li>@ach</li>
-                            }
-                        </ul>
-                    }
-                    else
-                    {
-                        <p class="text-gray-400">No achievements available.</p>
-                    }
-                </div>
-            </div>
-        }
+            <button type="submit" class="ml-4 px-6 py-2 bg-indigo-600 rounded-xl hover:bg-indigo-500 transition">
+                Upload & Parse Resume
+            </button>
+        </form>
     </div>
-</div>
+}
+else
+{
+    <!-- Profile & Skills -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Profile Card -->
+        <div class="bg-gray-800 rounded-2xl p-6 flex flex-col items-center">
+            <div class="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-3xl font-bold uppercase">
+                @(string.IsNullOrEmpty(Model.Name) ? "" : Model.Name.Substring(0, 1))
+            </div>
+
+            <h2 class="mt-4 text-xl font-semibold">@Model.Name</h2>
+            <p class="mt-2 text-gray-400">@Model.Email</p>
+            @if (!string.IsNullOrEmpty(Model.ContactNo))
+            {
+                <p class="text-gray-400">@Model.ContactNo</p>
+            }
+            @if (!string.IsNullOrEmpty(Model.LinkedInProfileLink))
+            {
+                <a href="@Model.LinkedInProfileLink" class="text-indigo-400 hover:underline" target="_blank">
+                    LinkedIn Profile
+                </a>
+            }
+
+            <div class="mt-6 flex justify-center w-full">
+                <a asp-controller="Candidate" asp-action="DownloadResume" asp-route-userId="@Model.UserId"
+                   class="px-6 py-2 bg-indigo-600 rounded-xl hover:bg-indigo-500 transition">
+                    Download Resume
+                </a>
+            </div>
+
+            <form asp-controller="Candidate" asp-action="UploadResume" method="post" enctype="multipart/form-data" class="mt-4 w-full text-center">
+                <input type="hidden" name="userId" value="@Model.UserId" />
+
+                <label class="cursor-pointer inline-block px-6 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition">
+                    Choose File
+                    <input type="file" name="resumeFile" accept=".pdf,.doc,.docx" class="hidden"
+                           onchange="document.getElementById('updateResumeFileName').innerText=this.files[0]?.name || 'No file chosen'" />
+                </label>
+                <span id="updateResumeFileName" class="ml-2 text-gray-400 text-sm">No file chosen</span>
+
+                <button type="submit" class="ml-4 px-6 py-2 bg-yellow-600 rounded-xl hover:bg-yellow-500 transition">
+                    Update Resume
+                </button>
+            </form>
+        </div>
+
+        <!-- Skills & Experience -->
+        <div class="md:col-span-2 bg-gray-800 rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-4">Skills</h3>
+            <div class="flex flex-wrap gap-2">
+                @foreach (var skill in Model.Skills)
+                {
+                    <span class="bg-indigo-700 px-3 py-1 rounded-full text-sm">@skill</span>
+                }
+                @if (!Model.Skills.Any())
+                {
+                    <p class="text-gray-400">No skills extracted yet.</p>
+                }
+            </div>
+
+            <h3 class="mt-6 text-lg font-semibold mb-2">Experience</h3>
+            @if (!string.IsNullOrEmpty(Model.ExperienceSummary))
+            {
+                <p class="bg-gray-700 p-4 rounded-xl">@Model.ExperienceSummary</p>
+            }
+            @if (Model.TotalExperienceYears.HasValue)
+            {
+                <p class="mt-2 text-gray-400">Total: @Model.TotalExperienceYears years</p>
+            }
+        </div>
+    </div>
+
+    <!-- Projects & Achievements -->
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-gray-800 rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-4">Projects</h3>
+            @if (Model.ProjectsBuilt.Any())
+            {
+                <ul class="list-disc list-inside space-y-2">
+                    @foreach (var proj in Model.ProjectsBuilt)
+                    {
+                        <li>@proj</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-gray-400">No projects available.</p>
+            }
+        </div>
+
+        <div class="bg-gray-800 rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-4">Achievements</h3>
+            @if (Model.Achievements.Any())
+            {
+                <ul class="list-disc list-inside space-y-2">
+                    @foreach (var ach in Model.Achievements)
+                    {
+                        <li>@ach</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-gray-400">No achievements available.</p>
+            }
+        </div>
+    </div>
+}

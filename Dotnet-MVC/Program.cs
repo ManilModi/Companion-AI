@@ -2,11 +2,12 @@
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using Microsoft.EntityFrameworkCore;
-using CloudinaryDotNet;
+using AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ------------------- Add MVC and DB -------------------
+
+// Add MVC and DB
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -20,6 +21,13 @@ builder.Services.AddScoped<IJobRepo, JobRepo>();
 builder.Services.AddScoped<IInterviewrepo, InterviewRepo>();
 builder.Services.AddScoped<IFeedbackrepo, FeedbackRepo>();
 builder.Services.AddScoped<IUserJobRepo, UserJobRepo>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+
+builder.Services.AddSession();
 
 // ------------------- Cloudinary -------------------
 builder.Services.AddSingleton(x =>

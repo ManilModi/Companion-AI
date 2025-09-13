@@ -1,29 +1,201 @@
 ﻿@model IEnumerable<DotnetMVCApp.ViewModels.HR.ApplicantViewModel>
 @{
     Layout = "~/Views/Shared/_HRLayout.cshtml";
-    ViewData["Title"] = "Applicants";
+    ViewData["Title"] = "Application Leaderboard";
 }
 
-<h2 class="text-2xl font-bold mb-6">Applicants</h2>
+<h2 class="text-3xl font-bold mb-6 text-purple-500 flex items-center">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6h6v6m-3-9V4m0 16v-3m-7-7h3m4 0h3" />
+    </svg>
+    Application Leaderboard
+</h2>
+<p class="text-gray-400 mb-6">Top performing candidates ranked by overall score</p>
 
-<div class="overflow-x-auto">
-    <table class="min-w-full border border-gray-200 divide-y divide-gray-200 rounded-lg shadow-sm">
-        <thead class="bg-gray-100">
-            <tr>
-                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Applied On</th>
-                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Feedback</th>
-            </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-            @foreach (var applicant in Model)
-            {
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-4 text-sm text-gray-800">@applicant.Email</td>
-                    <td class="px-6 py-4 text-sm text-gray-600">@applicant.AppliedOn.ToShortDateString()</td>
-                    <td class="px-6 py-4 text-sm text-gray-600">@applicant.Feedback</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+<div class="space-y-4">
+    @foreach (var applicant in Model.OrderByDescending(a => a.Scores != null && a.Scores.ContainsKey("TotalScore") ? a.Scores["TotalScore"] : 0).Select((a, i) => new { Applicant = a, Rank = i + 1 }))
+    {
+        var totalScore = applicant.Applicant.Scores != null && applicant.Applicant.Scores.ContainsKey("TotalScore")
+        ? applicant.Applicant.Scores["TotalScore"]
+        : 0;
+
+        <div class="flex items-center justify-between bg-gray-800 text-white rounded-xl p-5 shadow-md hover:shadow-lg transition">
+            <div class="flex items-center space-x-4">
+                <div class="text-2xl">
+                    @if (applicant.Rank == 1)
+                    {
+                        <span class="text-yellow-400">🏆</span>
+                    }
+                    else if (applicant.Rank == 2)
+                    {
+                        <span class="text-gray-300">🥈</span>
+                    }
+                    else if (applicant.Rank == 3)
+                    {
+                        <span class="text-orange-400">🥉</span>
+                    }
+                    else
+                    {
+                        <span class="text-gray-500 font-bold">#@applicant.Rank</span>
+                    }
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-sm font-bold">
+                    @(string.IsNullOrWhiteSpace(applicant.Applicant.Name) ? "?"
+                                        : applicant.Applicant.Name.Trim()[0].ToString().ToUpper())
+                </div>
+                <div>
+                    <p class="font-semibold text-lg">@applicant.Applicant.Name</p>
+                    <p class="text-gray-400 text-sm">@applicant.Applicant.Email</p>
+                </div>
+            </div>
+        </div>
+
+            <div class="flex items-center space-x-8">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-red-400">@totalScore</p>
+                    <p class="text-xs text-gray-400">Total Score</p>
+                </div>
+                <div class="flex space-x-6 text-sm text-gray-300">
+                    <div class="text-center">
+                        <p class="font-semibold">@((applicant.Applicant.Scores?["TechnicalSkills"]) ?? 0)</p>
+                        <p class="text-xs">Technical Skills</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-semibold">@((applicant.Applicant.Scores?["Experience"]) ?? 0)</p>
+                        <p class="text-xs">Experience</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-semibold">@((applicant.Applicant.Scores?["Certifications"]) ?? 0)</p>
+                        <p class="text-xs">Certifications</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-semibold">@((applicant.Applicant.Scores?["Projects"]) ?? 0)</p>
+                        <p class="text-xs">Projects</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-semibold">@((applicant.Applicant.Scores?["SoftSkills"]) ?? 0)</p>
+                        <p class="text-xs">Soft Skills</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">submitted</span>
+
+                <!-- ✅ View Button with data-* attributes -->
+                <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded-lg text-sm font-medium transition view-candidate-btn"
+                        data-name="@applicant.Applicant.Name"
+                        data-email="@applicant.Applicant.Email"
+                        data-contact="@applicant.Applicant.ContactNo"
+                        data-exp-summary="@applicant.Applicant.ExperienceSummary"
+                        data-exp-years="@applicant.Applicant.TotalExperienceYears"
+                        data-skills="@string.Join(",", applicant.Applicant.Skills ?? new List<string>())"
+                        data-projects="@string.Join(",", applicant.Applicant.ProjectsBuilt ?? new List<string>())"
+                        data-achievements="@string.Join(",", applicant.Applicant.Achievements ?? new List<string>())"
+                        data-resume="@applicant.Applicant.ResumeUrl">
+                    View
+                </button>
+
+                <button class="text-gray-300 hover:text-white">
+                    <i class="fa-solid fa-calendar text-xl"></i>
+                </button>
+
+                <button class="text-gray-300 hover:text-white">
+                    <i class="fa-solid fa-comment text-xl"></i>
+                </button>
+            </div>
+        </div>
+        }
 </div>
+
+<!-- 🧠 Candidate Detail Modal -->
+<div id="candidateDetailModal"
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-gray-900 text-white rounded-xl w-[700px] max-h-[80vh] shadow-2xl overflow-hidden relative">
+
+        <!-- Close -->
+        <button id="closeCandidateModal"
+                class="absolute top-3 right-3 text-gray-400 hover:text-white text-2xl">
+            &times;
+        </button>
+
+        <!-- Header -->
+        <div class="p-6 border-b border-gray-700">
+            <h3 id="candName" class="text-2xl font-bold mb-1"></h3>
+            <p id="candEmail" class="text-gray-400"></p>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div class="p-6 space-y-5 overflow-y-auto max-h-[60vh]">
+
+            <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                <p><span class="font-semibold">📞 Contact:</span> <span id="candContact"></span></p>
+                <p>
+                    <span class="font-semibold">💼 Experience:</span> <span id="candExperience"></span>
+                    (<span id="candExpYears"></span> years)
+                </p>
+            </div>
+
+            <div>
+                <p class="font-semibold text-purple-400 mb-2">💡 Skills</p>
+                <ul id="candSkills"
+                    class="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-300 list-disc list-inside text-sm"></ul>
+            </div>
+
+            <div>
+                <p class="font-semibold text-purple-400 mb-2">🧪 Projects</p>
+                <ul id="candProjects"
+                    class="space-y-1 text-gray-300 list-disc list-inside text-sm"></ul>
+            </div>
+
+            <div>
+                <p class="font-semibold text-purple-400 mb-2">🏆 Achievements</p>
+                <ul id="candAchievements"
+                    class="space-y-1 text-gray-300 list-disc list-inside text-sm"></ul>
+            </div>
+
+            <div>
+                <p class="font-semibold text-purple-400 mb-2">📎 Resume</p>
+                <a id="candResume"
+                   href="#"
+                   target="_blank"
+                   class="text-blue-400 underline hover:text-blue-300 text-sm">View Resume</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.view-candidate-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('candName').textContent = btn.dataset.name ?? "";
+                document.getElementById('candEmail').textContent = btn.dataset.email ?? "";
+                document.getElementById('candContact').textContent = btn.dataset.contact ?? "";
+                document.getElementById('candExperience').textContent = btn.dataset.expSummary ?? "";
+                document.getElementById('candExpYears').textContent = btn.dataset.expYears ?? "0";
+                document.getElementById('candResume').href = btn.dataset.resume ?? "#";
+
+                const fillList = (id, data) => {
+                    const list = document.getElementById(id);
+                    list.innerHTML = "";
+                    (data ? data.split(',') : []).forEach(item => {
+                        if (item.trim()) list.innerHTML += `<li>${item}</li>`;
+                    });
+                };
+                fillList('candSkills', btn.dataset.skills);
+                fillList('candProjects', btn.dataset.projects);
+                fillList('candAchievements', btn.dataset.achievements);
+
+                document.getElementById('candidateDetailModal').classList.remove('hidden');
+            });
+        });
+
+        document.getElementById('closeCandidateModal').addEventListener('click', () => {
+            document.getElementById('candidateDetailModal').classList.add('hidden');
+        });
+    </script>
+}
