@@ -1,5 +1,6 @@
 ﻿using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using DotnetMVCApp.Attributes; // <-- for SessionAuthorize
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using DotnetMVCApp.ViewModels.HR;
@@ -16,6 +17,7 @@ using iText.Kernel.Pdf.Canvas.Parser.Listener;
 
 namespace DotnetMVCApp.Controllers
 {
+    [SessionAuthorize("HR")] // Only HR role can access
     public class HRController : Controller
     {
         private readonly IJobRepo _jobRepo;
@@ -35,11 +37,7 @@ namespace DotnetMVCApp.Controllers
 
         private int GetCurrentHrId()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (int.TryParse(userIdClaim, out int hrId))
-                return hrId;
-
-            return 0;
+            return HttpContext.Session.GetInt32("UserId") ?? 0;
         }
 
         private async Task<string> GetJobDescriptionTextAsync(string jdUrl)
@@ -64,7 +62,6 @@ namespace DotnetMVCApp.Controllers
                         doc.MainDocumentPart.Document.Body
                            .Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
                            .Select(p => p.InnerText));
-
                 }
                 else if (jdUrl.EndsWith(".pdf"))
                 {
@@ -113,7 +110,6 @@ namespace DotnetMVCApp.Controllers
 
         private string UploadJobDescriptionToCloudinary(string jobDescription, string fileName)
         {
-            // Convert job description text into a memory stream
             var bytes = Encoding.UTF8.GetBytes(jobDescription);
             using var stream = new MemoryStream(bytes);
 
@@ -127,7 +123,6 @@ namespace DotnetMVCApp.Controllers
 
             return uploadResult.SecureUrl?.ToString();
         }
-
 
         [HttpGet]
         public IActionResult CreateJob()
@@ -275,7 +270,7 @@ namespace DotnetMVCApp.Controllers
         {
             var job = _jobRepo.GetJobById(jobId);
 
-            if (job == null /* || job.PostedByUserId != GetCurrentHrId() */)
+            if (job == null)
                 return NotFound();
 
             _jobRepo.Delete(jobId);

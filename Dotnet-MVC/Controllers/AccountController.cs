@@ -1,11 +1,12 @@
-﻿using System.Security.Claims;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using HiringAssistance.Models;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 
 public class AccountController : Controller
 {
@@ -20,29 +21,22 @@ public class AccountController : Controller
     private string GenerateSalt()
     {
         byte[] saltBytes = new byte[16];
-        using (var rng = RandomNumberGenerator.Create())
-        {
-            rng.GetBytes(saltBytes);
-        }
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(saltBytes);
         return Convert.ToBase64String(saltBytes);
     }
 
     private string HashPassword(string password, string salt)
     {
-        using (var sha256 = SHA256.Create())
-        {
-            var combined = Encoding.UTF8.GetBytes(password + salt);
-            var hashBytes = sha256.ComputeHash(combined);
-            return Convert.ToBase64String(hashBytes);
-        }
+        using var sha256 = SHA256.Create();
+        var combined = Encoding.UTF8.GetBytes(password + salt);
+        var hashBytes = sha256.ComputeHash(combined);
+        return Convert.ToBase64String(hashBytes);
     }
 
     // --------- Register ----------
     [HttpGet]
-    public IActionResult Register()
-    {
-        return View(new RegisterViewModel());
-    }
+    public IActionResult Register() => View(new RegisterViewModel());
 
     [HttpPost]
     public IActionResult Register(RegisterViewModel model)
@@ -59,7 +53,6 @@ public class AccountController : Controller
         string salt = GenerateSalt();
         string hashedPassword = HashPassword(model.Password, salt);
 
-        // Map role string → int (keeps User.cs unchanged)
         UserRole roleValue = model.Role switch
         {
             "HR" => UserRole.HR,
@@ -83,10 +76,7 @@ public class AccountController : Controller
 
     // --------- Login ----------
     [HttpGet]
-    public IActionResult Login()
-    {
-        return View();
-    }
+    public IActionResult Login() => View();
 
     [HttpPost]
     public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
@@ -101,42 +91,50 @@ public class AccountController : Controller
             return View(model);
         }
 
+        // --- Store user info in session ---
+        HttpContext.Session.SetInt32("UserId", user.UserId);
+        HttpContext.Session.SetString("UserEmail", user.Email);
+        HttpContext.Session.SetString("UserRole", user.Role.ToString());
+
+        // --- Store user info in cookie authentication ---
         var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-        new Claim(ClaimTypes.Email, user.Email),
-        new Claim(ClaimTypes.Role, user.Role.ToString())
-    };
-
-        var identity = new ClaimsIdentity(claims, "MyCookieAuth");
-        var principal = new ClaimsPrincipal(identity);
-
-        await HttpContext.SignInAsync("MyCookieAuth", principal, new AuthenticationProperties
         {
-            IsPersistent = model.RememberMe,
-            ExpiresUtc = DateTime.UtcNow.AddHours(2)
-        });
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role.ToString())
+        };
 
-        // Role-based redirect (ignore ReturnUrl)
+        var claimsIdentity = new ClaimsIdentity(claims, "MyCookieAuth");
+
+        var authProperties = new AuthenticationProperties
+        {
+            IsPersistent = true, // keeps user logged in across browser restarts
+            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(15)
+        };
+
+        await HttpContext.SignInAsync("MyCookieAuth",
+            new ClaimsPrincipal(claimsIdentity),
+            authProperties);
+
+        // Redirect based on role
         return user.Role switch
         {
             UserRole.HR => RedirectToAction("Overview", "HR"),
             UserRole.Candidate => RedirectToAction("Dashboard", "Candidate"),
-            UserRole.Admin => RedirectToAction("Index", "Admin"),
-            _ => RedirectToAction("Index", "Home")
+            _ => RedirectToAction("Login")
         };
     }
-
-
-
 
     // --------- Logout ----------
     [HttpPost]
     public async Task<IActionResult> Logout()
     {
-        await HttpContext.SignOutAsync("MyCookieAuth");
-        return RedirectToAction("Login");
+        HttpContext.Session.Clear(); // clear all session data
+        await HttpContext.SignOutAsync("MyCookieAuth"); // clear authentication cookie
+        return RedirectToAction("Index", "Home"); // redirect to Home/Index
     }
+
 
     // --------- Access Denied ----------
     [HttpGet]

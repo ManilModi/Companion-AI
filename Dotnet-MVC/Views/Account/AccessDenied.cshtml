@@ -1,0 +1,18 @@
+﻿@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4">
+    <div class="bg-gray-800 p-10 sm:p-12 rounded-3xl shadow-2xl text-center text-white max-w-lg">
+        <div class="text-8xl mb-6 text-red-500 animate-bounce">🚫</div>
+        <h1 class="text-5xl font-extrabold mb-4">Access Denied</h1>
+        <p class="mb-8 text-gray-300 leading-relaxed">
+            Oops! You don’t have permission to access this page.<br />
+            Please contact your administrator if you think this is a mistake.
+        </p>
+        <a asp-controller="Home" asp-action="Index"
+           class="inline-block bg-indigo-600 hover:bg-indigo-700 transition duration-300 text-white font-semibold py-3 px-10 rounded-xl shadow-lg hover:shadow-2xl hover:scale-105">
+            Go Back Home
+        </a>
+    </div>
+</div>
