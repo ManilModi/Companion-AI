@@ -3,6 +3,7 @@ using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using CloudinaryDotNet;
 
 var builder = WebApplication.CreateBuilder(args);
 

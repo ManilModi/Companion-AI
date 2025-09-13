@@ -173,9 +173,9 @@ namespace DotnetMVCApp.Controllers
         [HttpGet]
         public async Task<IActionResult> JobSearch()
         {
-            var jobs = _unitOfWork.Jobs.GetAllJobs();
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            int userId = GetCurrentUserId();
 
+            var jobs = _unitOfWork.Jobs.GetAllJobs();
             var appliedJobIds = _unitOfWork.UserJobs.GetJobsByUser(userId)
                                                    .Select(uj => uj.JobId)
                                                    .ToHashSet();
@@ -187,7 +187,7 @@ namespace DotnetMVCApp.Controllers
             foreach (var jobVm in model)
             {
                 jobVm.HasApplied = appliedJobIds.Contains(jobVm.JobId);
-                jobVm.Status = jobVm.CloseTime > DateTime.Now ? "active" : "closed";
+                jobVm.Status = jobs.First(j => j.JobId == jobVm.JobId).CloseTime > DateTime.Now ? "active" : "closed";
                 jobVm.ApplicantsCount = jobs.First(j => j.JobId == jobVm.JobId).Applicants?.Count ?? 0;
 
                 var jobEntity = jobs.First(j => j.JobId == jobVm.JobId);
@@ -240,39 +240,10 @@ namespace DotnetMVCApp.Controllers
             return RedirectToAction("JobSearch");
         }
 
-
-        [HttpGet]
-        public IActionResult ApplyJob(int id)
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null)
-            {
-                TempData["Message"] = "You must be logged in to apply for a job.";
-                return RedirectToAction("Login", "Auth");
-            }
-
-            int userId = int.Parse(userIdClaim.Value);
-
-            bool alreadyApplied = _unitOfWork.UserJobs.Exists(userId, id);
-            if (!alreadyApplied)
-            {
-                _unitOfWork.UserJobs.ApplyToJob(userId, id);
-                _unitOfWork.Save();
-                TempData["Message"] = "Applied successfully!";
-            }
-            else
-            {
-                TempData["Message"] = "You have already applied for this job.";
-            }
-
-            return RedirectToAction("JobSearch");
-        }
-
         [HttpPost]
         public IActionResult WithdrawJob(int id)
         {
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            int userId = GetCurrentUserId();
 
             var userJob = _unitOfWork.UserJobs.GetByUserAndJob(userId, id);
             if (userJob != null)
