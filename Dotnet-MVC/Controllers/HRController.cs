@@ -196,62 +196,116 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult Applicants(int jobId)
+        public async Task<IActionResult> Applicants(int jobId)
         {
             var job = _unitOfWork.Jobs.GetJobWithApplicantsAndUsers(jobId);
             if (job == null || job.PostedByUserId != GetCurrentHrId())
                 return Unauthorized();
 
-            var applicants = job.Applicants
-                .Select(a =>
+            // ✅ Fetch job description text (from Cloudinary URL)
+            string jobDescription = "";
+            if (!string.IsNullOrEmpty(job.JobDescription))
+            {
+                try
                 {
-                    ExtractedInfoModel extracted = new ExtractedInfoModel();
+                    using var client = new HttpClient();
+                    var response = await client.GetAsync(job.JobDescription);
+                    if (response.IsSuccessStatusCode)
+                        jobDescription = await response.Content.ReadAsStringAsync();
+                }
+                catch
+                {
+                    jobDescription = "";
+                }
+            }
 
-                    if (!string.IsNullOrEmpty(a.User?.ExtractedInfo))
+            var applicants = new List<ApplicantViewModel>();
+
+            foreach (var a in job.Applicants)
+            {
+                ExtractedInfoModel extracted = new ExtractedInfoModel();
+
+                if (!string.IsNullOrEmpty(a.User?.ExtractedInfo))
+                {
+                    try
                     {
-                        try
-                        {
-                            extracted = JsonSerializer.Deserialize<ExtractedInfoModel>(
-                             a.User.ExtractedInfo,
-                             new JsonSerializerOptions
-                             {
-                                 PropertyNameCaseInsensitive = true // ✅ flexible
-                             }
-                         ) ?? new ExtractedInfoModel();
+                        extracted = JsonSerializer.Deserialize<ExtractedInfoModel>(
+                            a.User.ExtractedInfo,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                        ) ?? new ExtractedInfoModel();
+                    }
+                    catch { extracted = new ExtractedInfoModel(); }
+                }
 
-                        }
-                        catch
+                // ✅ Call FastAPI only if score not already saved
+                Dictionary<string, int>? scores = null;
+                if (string.IsNullOrEmpty(a.Score) && !string.IsNullOrEmpty(a.User?.ExtractedInfo))
+                {
+                    try
+                    {
+                        using var client = new HttpClient();
+
+                        var requestBody = new
                         {
-                            extracted = new ExtractedInfoModel(); // fallback
+                            resume_json = JsonSerializer.Deserialize<object>(a.User.ExtractedInfo),
+                            job_description = jobDescription
+                        };
+
+                        var response = await client.PostAsJsonAsync("http://localhost:8000/score-resume/", requestBody);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var responseString = await response.Content.ReadAsStringAsync();
+
+                            // FastAPI returns scores in JSON → store in DB
+                            var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseString);
+                            if (result != null && result.ContainsKey("scores"))
+                            {
+                                scores = JsonSerializer.Deserialize<Dictionary<string, int>>(result["scores"].ToString() ?? "{}");
+
+                                // Save into UserJob.Score
+                                a.Score = JsonSerializer.Serialize(scores);
+                                _unitOfWork.Save();
+                            }
                         }
                     }
-
-                    return new ApplicantViewModel
+                    catch (Exception ex)
                     {
-                        UserId = a.UserId,
-                        Name = extracted?.Name ?? a.User?.Username ?? "",
-                        Email = extracted?.Email ?? a.User?.Email ?? "",
-                        ContactNo = extracted?.ContactNo ?? "",
-                        ResumeUrl = a.User?.ResumeUrl ?? "",
-                        Skills = extracted?.Skills ?? new List<string>(),
-                        ExperienceSummary = extracted?.ExperienceSummary ?? "",
-                        TotalExperienceYears = extracted?.TotalExperienceYears != null
-    ? (int?)Math.Round(extracted.TotalExperienceYears.Value)
-    : null,
+                        Console.WriteLine($"Scoring failed for applicant {a.UserId}: {ex.Message}");
+                        scores = new Dictionary<string, int>();
+                    }
+                }
+                else
+                {
+                    scores = !string.IsNullOrEmpty(a.Score)
+                        ? JsonSerializer.Deserialize<Dictionary<string, int>>(a.Score)
+                        : new Dictionary<string, int>();
+                }
 
-                        ProjectsBuilt = extracted?.ProjectsBuilt ?? new List<string>(),
-                        Achievements = extracted?.Achievements ?? new List<string>(),
-                        Scores = !string.IsNullOrEmpty(a.Score)
-                                    ? JsonSerializer.Deserialize<Dictionary<string, int>>(a.Score)
-                                    : null
-                    };
-                })
-                .OrderByDescending(a => a.Scores != null && a.Scores.ContainsKey("TotalScore")
-                                        ? a.Scores["TotalScore"] : 0)
-                .ToList();
+                applicants.Add(new ApplicantViewModel
+                {
+                    UserId = a.UserId,
+                    Name = extracted?.Name ?? a.User?.Username ?? "",
+                    Email = extracted?.Email ?? a.User?.Email ?? "",
+                    ContactNo = extracted?.ContactNo ?? "",
+                    ResumeUrl = a.User?.ResumeUrl ?? "",
+                    Skills = extracted?.Skills ?? new List<string>(),
+                    ExperienceSummary = extracted?.ExperienceSummary ?? "",
+                    TotalExperienceYears = extracted?.TotalExperienceYears != null
+                        ? (int?)Math.Round(extracted.TotalExperienceYears.Value)
+                        : null,
+                    ProjectsBuilt = extracted?.ProjectsBuilt ?? new List<string>(),
+                    Achievements = extracted?.Achievements ?? new List<string>(),
+                    Scores = scores
+                });
+            }
 
-            return View("~/Views/User/HR/Applicants.cshtml", applicants);
+            // ✅ Sort by TotalScore before sending to view
+            return View("~/Views/User/HR/Applicants.cshtml",
+                applicants.OrderByDescending(a => a.Scores != null && a.Scores.ContainsKey("TotalScore")
+                                                ? a.Scores["TotalScore"] : 0)
+                          .ToList());
         }
+
 
 
 
