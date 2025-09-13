@@ -4,47 +4,53 @@
     ViewData["Title"] = "Login";
 }
 
-<div class="flex min-h-screen items-center justify-center bg-gray-100">
-    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
-        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Welcome Back 👋</h2>
+<div class="flex min-h-screen items-center justify-center bg-gray-900">
+    <div class="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-2xl">
+        <h2 class="text-2xl font-bold text-center text-white mb-6">Welcome Back 👋</h2>
 
         <!-- Display Success or Error -->
         @if (ViewBag.SuccessMessage != null)
         {
-            <div class="text-green-600 text-center mb-4 font-medium">@ViewBag.SuccessMessage</div>
+            <div class="text-green-400 text-center mb-4 font-medium">@ViewBag.SuccessMessage</div>
         }
 
         <form asp-action="Login" method="post" class="space-y-5">
-            <div asp-validation-summary="All" class="text-red-500 text-sm mb-2"></div>
+            <div asp-validation-summary="All" class="text-red-400 text-sm mb-2"></div>
 
             <div>
-                <label asp-for="Email" class="block text-sm font-medium text-gray-700"></label>
-                <input asp-for="Email" type="email" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-black" placeholder="Enter your email" />
-                <span asp-validation-for="Email" class="text-red-500 text-sm"></span>
+                <label asp-for="Email" class="block text-sm font-medium text-gray-300"></label>
+                <input asp-for="Email" type="email"
+                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                       placeholder="Enter your email" />
+                <span asp-validation-for="Email" class="text-red-400 text-sm"></span>
             </div>
 
             <div>
-                <label asp-for="Password" class="block text-sm font-medium text-gray-700"></label>
-                <input asp-for="Password" type="password" class="mt-1 w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-black" placeholder="Enter your password" />
-                <span asp-validation-for="Password" class="text-red-500 text-sm"></span>
+                <label asp-for="Password" class="block text-sm font-medium text-gray-300"></label>
+                <input asp-for="Password" type="password"
+                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                       placeholder="Enter your password" />
+                <span asp-validation-for="Password" class="text-red-400 text-sm"></span>
             </div>
 
             <div class="flex items-center justify-between">
                 <label class="flex items-center space-x-2">
-                    <input asp-for="RememberMe" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                    <span class="text-sm text-gray-600">Remember me</span>
+                    <input asp-for="RememberMe" type="checkbox"
+                           class="rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500">
+                    <span class="text-sm text-gray-300">Remember me</span>
                 </label>
-                <a href="#" class="text-sm font-medium text-indigo-600 hover:underline">Forgot password?</a>
+                <a href="#" class="text-sm font-medium text-indigo-400 hover:underline">Forgot password?</a>
             </div>
 
-            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-xl shadow-md hover:bg-indigo-700 transition">
+            <button type="submit"
+                    class="w-full bg-indigo-600 text-white py-2 rounded-xl shadow-md hover:bg-indigo-700 transition">
                 Login
             </button>
         </form>
 
-        <p class="mt-6 text-center text-sm text-gray-600">
+        <p class="mt-6 text-center text-sm text-gray-400">
             Don’t have an account?
-            <a asp-action="Register" class="text-indigo-600 font-medium hover:underline">Register</a>
+            <a asp-action="Register" class="text-indigo-400 font-medium hover:underline">Register</a>
         </p>
     </div>
 </div>

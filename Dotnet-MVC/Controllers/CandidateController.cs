@@ -4,6 +4,7 @@ using CloudinaryDotNet.Actions;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using DotnetMVCApp.ViewModels.Candidate;
+using DotnetMVCApp.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System.Net.Http.Headers;
@@ -11,6 +12,7 @@ using System.Security.Claims;
 
 namespace DotnetMVCApp.Controllers
 {
+    [SessionAuthorize("Candidate")] // Only candidates can access
     public class CandidateController : Controller
     {
         private readonly IUserRepo _userRepo;
@@ -33,16 +35,26 @@ namespace DotnetMVCApp.Controllers
             _mapper = mapper;
         }
 
+        // ----------------- Helper -----------------
+        private int GetCurrentUserId()
+        {
+            // 1️⃣ Try cookie authentication
+            if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                var idClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (idClaim != null && int.TryParse(idClaim.Value, out int userId))
+                    return userId;
+            }
+
+            // 2️⃣ Fallback to session
+            return HttpContext.Session.GetInt32("UserId") ?? 0;
+        }
+
         // Candidate Dashboard
         public IActionResult Dashboard()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim))
-            {
-                return RedirectToAction("Login", "Account");
-            }
-
-            int userId = int.Parse(userIdClaim);
+            int userId = GetCurrentUserId();
+            if (userId == 0) return RedirectToAction("Login", "Account"); // fallback
 
             var user = _userRepo.GetUserById(userId);
             if (user == null) return NotFound();
@@ -84,7 +96,6 @@ namespace DotnetMVCApp.Controllers
 
             string resumeUrl;
 
-            // Upload resume to Cloudinary
             using (var stream = resumeFile.OpenReadStream())
             {
                 var uploadParams = new RawUploadParams
@@ -94,7 +105,6 @@ namespace DotnetMVCApp.Controllers
                 };
 
                 var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-
                 if (uploadResult.StatusCode != System.Net.HttpStatusCode.OK)
                 {
                     TempData["Error"] = "Resume upload failed. Try again.";
@@ -104,7 +114,6 @@ namespace DotnetMVCApp.Controllers
                 resumeUrl = uploadResult.SecureUrl.ToString();
             }
 
-            // Send to FastAPI parser
             string responseString;
             using (var form = new MultipartFormDataContent())
             using (var stream = resumeFile.OpenReadStream())
@@ -123,7 +132,6 @@ namespace DotnetMVCApp.Controllers
                 responseString = await response.Content.ReadAsStringAsync();
             }
 
-            // Save in DB
             var user = _userRepo.GetUserById(userId);
             if (user != null)
             {
@@ -165,9 +173,9 @@ namespace DotnetMVCApp.Controllers
         [HttpGet]
         public async Task<IActionResult> JobSearch()
         {
-            var jobs = _unitOfWork.Jobs.GetAllJobs();
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            int userId = GetCurrentUserId();
 
+            var jobs = _unitOfWork.Jobs.GetAllJobs();
             var appliedJobIds = _unitOfWork.UserJobs.GetJobsByUser(userId)
                                                    .Select(uj => uj.JobId)
                                                    .ToHashSet();
@@ -179,7 +187,7 @@ namespace DotnetMVCApp.Controllers
             foreach (var jobVm in model)
             {
                 jobVm.HasApplied = appliedJobIds.Contains(jobVm.JobId);
-                jobVm.Status = jobVm.CloseTime > DateTime.Now ? "active" : "closed";
+                jobVm.Status = jobs.First(j => j.JobId == jobVm.JobId).CloseTime > DateTime.Now ? "active" : "closed";
                 jobVm.ApplicantsCount = jobs.First(j => j.JobId == jobVm.JobId).Applicants?.Count ?? 0;
 
                 var jobEntity = jobs.First(j => j.JobId == jobVm.JobId);
@@ -212,19 +220,10 @@ namespace DotnetMVCApp.Controllers
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
         }
 
-
         [HttpGet]
         public IActionResult ApplyJob(int id)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null)
-            {
-                TempData["Message"] = "You must be logged in to apply for a job.";
-                return RedirectToAction("Login", "Auth");
-            }
-
-            int userId = int.Parse(userIdClaim.Value);
+            int userId = GetCurrentUserId();
 
             bool alreadyApplied = _unitOfWork.UserJobs.Exists(userId, id);
             if (!alreadyApplied)
@@ -244,7 +243,7 @@ namespace DotnetMVCApp.Controllers
         [HttpPost]
         public IActionResult WithdrawJob(int id)
         {
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            int userId = GetCurrentUserId();
 
             var userJob = _unitOfWork.UserJobs.GetByUserAndJob(userId, id);
             if (userJob != null)

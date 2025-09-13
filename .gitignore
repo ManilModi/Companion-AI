@@ -60,5 +60,10 @@ venv/
 Resumes/
 /Dotnet-MVC/appsettings.json
 /Dotnet-MVC/appsettings.json
+<<<<<<< HEAD
 
 resume_history.json
+=======
+/Python Backend/Agents/__pycache__/resume_agent.cpython-310.pyc
+/Python Backend/__pycache__/app.cpython-310.pyc
+>>>>>>> ac02c003f01d49e32b0474562b6fe01f5c0d61fc
