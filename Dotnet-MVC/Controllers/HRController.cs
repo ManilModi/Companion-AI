@@ -223,8 +223,8 @@ namespace DotnetMVCApp.Controllers
 
             foreach (var a in job.Applicants)
             {
+                // ✅ Parse ExtractedInfo JSON
                 ExtractedInfoModel extracted = new ExtractedInfoModel();
-
                 if (!string.IsNullOrEmpty(a.User?.ExtractedInfo))
                 {
                     try
@@ -234,11 +234,15 @@ namespace DotnetMVCApp.Controllers
                             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
                         ) ?? new ExtractedInfoModel();
                     }
-                    catch { extracted = new ExtractedInfoModel(); }
+                    catch
+                    {
+                        extracted = new ExtractedInfoModel();
+                    }
                 }
 
-                // ✅ Call FastAPI only if score not already saved
-                Dictionary<string, int>? scores = null;
+                Dictionary<string, int> scores = new();
+
+                // ✅ Only call FastAPI if score not already saved
                 if (string.IsNullOrEmpty(a.Score) && !string.IsNullOrEmpty(a.User?.ExtractedInfo))
                 {
                     try
@@ -255,32 +259,45 @@ namespace DotnetMVCApp.Controllers
                         if (response.IsSuccessStatusCode)
                         {
                             var responseString = await response.Content.ReadAsStringAsync();
-
-                            // FastAPI returns scores in JSON → store in DB
                             var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseString);
-                            if (result != null && result.ContainsKey("scores"))
-                            {
-                                scores = JsonSerializer.Deserialize<Dictionary<string, int>>(result["scores"].ToString() ?? "{}");
 
-                                // Save into UserJob.Score
-                                a.Score = JsonSerializer.Serialize(scores);
-                                _unitOfWork.Save();
+                            if (result != null && result.TryGetValue("raw_output", out var rawObj))
+                            {
+                                var rawOutput = JsonSerializer.Deserialize<Dictionary<string, object>>(rawObj.ToString() ?? "{}");
+                                if (rawOutput != null)
+                                {
+                                    // Parse scores dictionary
+                                    if (rawOutput.TryGetValue("scores", out var scoresObj))
+                                    {
+                                        scores = JsonSerializer.Deserialize<Dictionary<string, int>>(scoresObj.ToString() ?? "{}")
+                                                  ?? new Dictionary<string, int>();
+                                    }
+
+                                    // Parse total_score
+                                    if (rawOutput.TryGetValue("total_score", out var totalObj))
+                                    {
+                                        if (int.TryParse(totalObj.ToString(), out int totalScore))
+                                            scores["TotalScore"] = totalScore;
+                                    }
+
+                                    // ✅ Save to DB
+                                    a.Score = JsonSerializer.Serialize(scores);
+                                    _unitOfWork.Save();
+                                }
                             }
                         }
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"Scoring failed for applicant {a.UserId}: {ex.Message}");
-                        scores = new Dictionary<string, int>();
                     }
                 }
-                else
+                else if (!string.IsNullOrEmpty(a.Score))
                 {
-                    scores = !string.IsNullOrEmpty(a.Score)
-                        ? JsonSerializer.Deserialize<Dictionary<string, int>>(a.Score)
-                        : new Dictionary<string, int>();
+                    scores = JsonSerializer.Deserialize<Dictionary<string, int>>(a.Score) ?? new Dictionary<string, int>();
                 }
 
+                // ✅ Build viewmodel
                 applicants.Add(new ApplicantViewModel
                 {
                     UserId = a.UserId,
@@ -300,13 +317,13 @@ namespace DotnetMVCApp.Controllers
             }
 
             // ✅ Sort by TotalScore before sending to view
-            return View("~/Views/User/HR/Applicants.cshtml",
-                applicants.OrderByDescending(a => a.Scores != null && a.Scores.ContainsKey("TotalScore")
-                                                ? a.Scores["TotalScore"] : 0)
-                          .ToList());
+            var sortedApplicants = applicants
+                .OrderByDescending(a => a.Scores != null && a.Scores.ContainsKey("TotalScore")
+                                        ? a.Scores["TotalScore"] : 0)
+                .ToList();
+
+            return View("~/Views/User/HR/Applicants.cshtml", sortedApplicants);
         }
-
-
 
 
         [HttpGet]

@@ -184,6 +184,10 @@ namespace DotnetMVCApp.Controllers
 
             using var httpClient = new HttpClient();
 
+            // ✅ Get current user with ExtractedInfo
+            var currentUser = _unitOfWork.Users.GetUserById(userId);
+            var extractedInfo = currentUser?.ExtractedInfo ?? "{}";
+
             foreach (var jobVm in model)
             {
                 jobVm.HasApplied = appliedJobIds.Contains(jobVm.JobId);
@@ -192,19 +196,15 @@ namespace DotnetMVCApp.Controllers
 
                 var jobEntity = jobs.First(j => j.JobId == jobVm.JobId);
 
+                // ✅ Attach Job Description
                 if (!string.IsNullOrEmpty(jobEntity.JobDescription))
                 {
                     try
                     {
                         var response = await httpClient.GetAsync(jobEntity.JobDescription);
-                        if (response.IsSuccessStatusCode)
-                        {
-                            jobVm.Description = await response.Content.ReadAsStringAsync();
-                        }
-                        else
-                        {
-                            jobVm.Description = "Unable to load description.";
-                        }
+                        jobVm.Description = response.IsSuccessStatusCode
+                            ? await response.Content.ReadAsStringAsync()
+                            : "Unable to load description.";
                     }
                     catch
                     {
@@ -215,10 +215,14 @@ namespace DotnetMVCApp.Controllers
                 {
                     jobVm.Description = "No description provided.";
                 }
+
+                // ✅ Attach candidate’s extracted resume info JSON
+                jobVm.CandidateResumeJson = extractedInfo;
             }
 
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
         }
+
 
         [HttpGet]
         public IActionResult ApplyJob(int id)

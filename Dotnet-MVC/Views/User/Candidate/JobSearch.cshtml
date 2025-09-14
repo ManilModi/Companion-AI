@@ -30,7 +30,7 @@
                             <span>@job.Location</span>
                             <span>@job.JobType</span>
                             <span>@job.SalaryRange</span>
-                            <span>@(DateTime.Now.Subtract(job.PostedDate).Days) days ago</span>
+                            
                         </div>
                         <p class="text-sm text-gray-500 mt-2">@job.ApplicantsCount applicants</p>
                     </div>
@@ -60,6 +60,17 @@
                                     class="px-4 py-2 rounded-xl bg-red-600 text-white font-medium shadow-md hover:bg-red-700 transition">
                                 Withdraw Application
                             </button>
+
+                            <!-- ✅ Feedback Button -->
+                            <button type="button"
+                                    onclick="fetchFeedback(@job.JobId)"
+                                    class="px-4 py-2 rounded-xl bg-indigo-500 text-white font-medium shadow-md hover:bg-indigo-600 transition">
+                                Feedback
+                            </button>
+
+                            <!-- Hidden fields -->
+                            <input type="hidden" id="resumeJson-@job.JobId" value='@Html.Raw(job.CandidateResumeJson ?? "{}")' />
+                            <input type="hidden" id="jobDesc-@job.JobId" value="@job.Description" />
                         }
                         else
                         {
@@ -118,34 +129,52 @@
                         }
                     </div>
                 </div>
-            </div> <!-- ✅ Closing the job card properly -->
-        } <!-- ✅ Closing foreach -->
+            </div>
+        }
     </div>
 </div>
 
-<!-- Withdraw Confirmation Modal -->
+<!-- Withdraw Modal -->
 <div id="withdrawModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Confirm Withdrawal</h3>
-        <p class="text-gray-600 mb-6">
-            Are you sure you want to withdraw your application? This action cannot be undone.
-        </p>
-
+        <p class="text-gray-600 mb-6">Are you sure you want to withdraw your application? This action cannot be undone.</p>
         <form id="withdrawForm" method="post" asp-action="WithdrawJob" asp-controller="Candidate">
             <input type="hidden" id="withdrawJobId" name="id" />
             <div class="flex justify-end space-x-3">
-                <button type="button"
-                        onclick="closeWithdrawModal()"
-                        class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
-                    Cancel
-                </button>
-                <button type="submit"
-                        class="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition">
-                    Yes, Withdraw
-                </button>
+                <button type="button" onclick="closeWithdrawModal()" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition">Yes, Withdraw</button>
             </div>
         </form>
     </div>
+</div>
+
+<!-- ✅ Feedback Modal -->
+<div id="feedbackModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+    <div class="bg-gray-900 text-gray-100 rounded-2xl shadow-xl w-full max-w-3xl p-6 relative">
+        <!-- Header -->
+        <div class="flex justify-between items-center border-b border-gray-700 pb-3 mb-4">
+            <h3 class="text-2xl font-bold text-white">Application Feedback</h3>
+            <button onclick="closeFeedbackModal()" class="text-gray-400 hover:text-gray-200 transition">
+                ✕
+            </button>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div id="feedbackContent" class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            <p>Loading feedback...</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex justify-end mt-6 border-t border-gray-700 pt-4">
+            <button type="button" onclick="closeFeedbackModal()"
+                    class="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 font-medium hover:bg-gray-600 transition">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
 </div>
 
 @section Scripts {
@@ -177,6 +206,59 @@
 
         function closeWithdrawModal() {
             document.getElementById("withdrawModal").classList.add("hidden");
+        }
+
+        async function fetchFeedback(jobId) {
+            const resumeJson = JSON.parse(document.getElementById(`resumeJson-${jobId}`).value || "{}");
+            const jobDesc = document.getElementById(`jobDesc-${jobId}`).value || "";
+
+            const requestData = {
+                resume_json: resumeJson,
+                job_description: jobDesc
+            };
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/score-resume/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) throw new Error("Failed to fetch feedback");
+                const data = await response.json();
+
+                // ✅ No score displayed
+                document.getElementById("feedbackContent").innerHTML = `
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="text-lg font-semibold text-green-500">Strengths</h4>
+                            <p class="text-gray-300 mt-2">${data.raw_output?.strengths_summary || "No strengths found."}</p>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold text-yellow-500">Areas to Improve</h4>
+                            <ul class="list-disc ml-6 text-gray-300 mt-2">
+                                ${(data.raw_output?.improvement_areas || []).map(i => `<li>${i}</li>`).join("")}
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold text-blue-500">Suggestions</h4>
+                            <ul class="list-disc ml-6 text-gray-300 mt-2">
+                                ${(data.raw_output?.suggestions || []).map(s => `<li>${s}</li>`).join("")}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error(err);
+                document.getElementById("feedbackContent").innerHTML =
+                    "<p class='text-red-600'>Error fetching feedback. Please try again later.</p>";
+            }
+
+            document.getElementById("feedbackModal").classList.remove("hidden");
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById("feedbackModal").classList.add("hidden");
         }
     </script>
 }
