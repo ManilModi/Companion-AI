@@ -1,30 +1,77 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <title>@ViewData["Title"] - HR Dashboard</title>
 
     <!-- ✅ Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ✅ FontAwesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* Custom scrollbar for sidebar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #374151; /* gray-700 */
+            border-radius: 4px;
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #4b5563; /* gray-600 */
+            }
+    </style>
 </head>
-<body class="bg-gray-100 text-gray-900">
-    <div class="flex min-h-screen">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-gray-900 text-white flex flex-col">
-            <div class="p-6 border-b border-gray-700">
-                <h4 class="text-xl font-bold">HR Panel</h4>
+<body class="bg-gray-950 text-gray-100 font-sans">
+    <div class="flex">
+        <!-- Sidebar (Fixed) -->
+        <aside class="fixed top-0 left-0 h-screen w-64 bg-gray-900 text-white flex flex-col shadow-xl border-r border-gray-800">
+            <!-- Brand -->
+            <div class="p-6 border-b border-gray-800">
+                <h4 class="text-2xl font-bold tracking-wide text-indigo-400">⚡ HR Panel</h4>
             </div>
 
-            <nav class="flex-1 p-4 space-y-2">
-                <a class="block px-3 py-2 rounded hover:bg-gray-700 transition" asp-action="Overview">Overview</a>
-                <a class="block px-3 py-2 rounded hover:bg-gray-700 transition" asp-action="CreateJob">Create Job</a>
-                <a class="block px-3 py-2 rounded hover:bg-gray-700 transition" asp-action="JobListings">Job Listings</a>
+            <!-- Navigation -->
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <a class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-indigo-400 transition"
+                   asp-action="Overview">
+                    <i class="fas fa-home w-5 mr-3 text-gray-400 group-hover:text-indigo-400"></i> Overview
+                </a>
+                <a class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-indigo-400 transition"
+                   asp-action="CreateJob">
+                    <i class="fas fa-plus-circle w-5 mr-3 text-gray-400"></i> Create Job
+                </a>
+                <a class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-indigo-400 transition"
+                   asp-action="JobListings">
+                    <i class="fas fa-briefcase w-5 mr-3 text-gray-400"></i> Job Listings
+                </a>
             </nav>
+
+            <!-- ✅ Logout Button at Bottom -->
+            <div class="p-4 border-t border-gray-800">
+                <form asp-controller="Account" asp-action="Logout" method="post" class="inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white
+                                   rounded-lg text-sm font-semibold transition flex items-center justify-center shadow-md">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </button>
+                </form>
+            </div>
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 p-8">
-            @RenderBody()
+        <main class="flex-1 ml-64 p-10 bg-gray-950 min-h-screen">
+            <div class="bg-gray-900 shadow-lg rounded-xl p-8 border border-gray-800">
+                @RenderBody()
+            </div>
         </main>
     </div>
 

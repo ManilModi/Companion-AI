@@ -60,5 +60,14 @@ namespace DotnetMVCApp.Repositories
             }
             return job;
         }
+
+        public Job GetJobWithApplicantsAndUsers(int jobId)
+        {
+            return _context.Jobs
+                .Include(j => j.Applicants)
+                    .ThenInclude(uj => uj.User)
+                .FirstOrDefault(j => j.JobId == jobId);
+        }
+
     }
 }

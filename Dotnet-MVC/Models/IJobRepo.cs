@@ -7,6 +7,7 @@
         public Job Add(Job job);
         public Job Update(Job job);
         public Job Delete(int id);
+        public Job GetJobWithApplicantsAndUsers(int jobId);
 
     }
 }

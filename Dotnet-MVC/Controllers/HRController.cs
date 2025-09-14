@@ -1,5 +1,6 @@
 ﻿using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using DotnetMVCApp.Attributes; // <-- for SessionAuthorize
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using DotnetMVCApp.ViewModels.HR;
@@ -16,6 +17,7 @@ using iText.Kernel.Pdf.Canvas.Parser.Listener;
 
 namespace DotnetMVCApp.Controllers
 {
+    [SessionAuthorize("HR")] // Only HR role can access
     public class HRController : Controller
     {
         private readonly IJobRepo _jobRepo;
@@ -23,23 +25,21 @@ namespace DotnetMVCApp.Controllers
         private readonly IUserRepo _userRepo;
         private readonly IInterviewrepo _interviewRepo;
         private readonly Cloudinary _cloudinary;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public HRController(IJobRepo jobRepo, IUserJobRepo userJobRepo, IUserRepo userRepo, IInterviewrepo interviewRepo, Cloudinary cloudinary)
+        public HRController(IJobRepo jobRepo, IUserJobRepo userJobRepo, IUserRepo userRepo, IInterviewrepo interviewRepo, Cloudinary cloudinary, IUnitOfWork unitOfWork)
         {
             _jobRepo = jobRepo;
             _userJobRepo = userJobRepo;
             _userRepo = userRepo;
             _interviewRepo = interviewRepo;
             _cloudinary = cloudinary;
+            _unitOfWork = unitOfWork;
         }
 
         private int GetCurrentHrId()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (int.TryParse(userIdClaim, out int hrId))
-                return hrId;
-
-            return 0;
+            return HttpContext.Session.GetInt32("UserId") ?? 0;
         }
 
         private async Task<string> GetJobDescriptionTextAsync(string jdUrl)
@@ -64,7 +64,6 @@ namespace DotnetMVCApp.Controllers
                         doc.MainDocumentPart.Document.Body
                            .Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
                            .Select(p => p.InnerText));
-
                 }
                 else if (jdUrl.EndsWith(".pdf"))
                 {
@@ -113,7 +112,6 @@ namespace DotnetMVCApp.Controllers
 
         private string UploadJobDescriptionToCloudinary(string jobDescription, string fileName)
         {
-            // Convert job description text into a memory stream
             var bytes = Encoding.UTF8.GetBytes(jobDescription);
             using var stream = new MemoryStream(bytes);
 
@@ -127,7 +125,6 @@ namespace DotnetMVCApp.Controllers
 
             return uploadResult.SecureUrl?.ToString();
         }
-
 
         [HttpGet]
         public IActionResult CreateJob()
@@ -198,21 +195,136 @@ namespace DotnetMVCApp.Controllers
             return View("~/Views/User/HR/JobListings.cshtml", model);
         }
 
-        public IActionResult Applicants(int jobId)
+        [HttpGet]
+        public async Task<IActionResult> Applicants(int jobId)
         {
-            var job = _jobRepo.GetJobById(jobId);
+            var job = _unitOfWork.Jobs.GetJobWithApplicantsAndUsers(jobId);
             if (job == null || job.PostedByUserId != GetCurrentHrId())
                 return Unauthorized();
 
-            var model = job.Applicants.Select(a => new ApplicantViewModel
+            // ✅ Fetch job description text (from Cloudinary URL)
+            string jobDescription = "";
+            if (!string.IsNullOrEmpty(job.JobDescription))
             {
-                UserId = a.UserId,
-                Email = a.User.Email,
-                Feedback = a.User.Feedbacks.FirstOrDefault(f => f.JobId == jobId)?.FeedbackText
-            });
+                try
+                {
+                    using var client = new HttpClient();
+                    var response = await client.GetAsync(job.JobDescription);
+                    if (response.IsSuccessStatusCode)
+                        jobDescription = await response.Content.ReadAsStringAsync();
+                }
+                catch
+                {
+                    jobDescription = "";
+                }
+            }
 
-            return View("~/Views/User/HR/Applicants.cshtml", model);
+            var applicants = new List<ApplicantViewModel>();
+
+            foreach (var a in job.Applicants)
+            {
+                // ✅ Parse ExtractedInfo JSON
+                ExtractedInfoModel extracted = new ExtractedInfoModel();
+                if (!string.IsNullOrEmpty(a.User?.ExtractedInfo))
+                {
+                    try
+                    {
+                        extracted = JsonSerializer.Deserialize<ExtractedInfoModel>(
+                            a.User.ExtractedInfo,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                        ) ?? new ExtractedInfoModel();
+                    }
+                    catch
+                    {
+                        extracted = new ExtractedInfoModel();
+                    }
+                }
+
+                Dictionary<string, int> scores = new();
+
+                // ✅ Only call FastAPI if score not already saved
+                if (string.IsNullOrEmpty(a.Score) && !string.IsNullOrEmpty(a.User?.ExtractedInfo))
+                {
+                    try
+                    {
+                        using var client = new HttpClient();
+
+                        var requestBody = new
+                        {
+                            resume_json = JsonSerializer.Deserialize<object>(a.User.ExtractedInfo),
+                            job_description = jobDescription
+                        };
+
+                        var response = await client.PostAsJsonAsync("http://localhost:8000/score-resume/", requestBody);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var responseString = await response.Content.ReadAsStringAsync();
+                            var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseString);
+
+                            if (result != null && result.TryGetValue("raw_output", out var rawObj))
+                            {
+                                var rawOutput = JsonSerializer.Deserialize<Dictionary<string, object>>(rawObj.ToString() ?? "{}");
+                                if (rawOutput != null)
+                                {
+                                    // Parse scores dictionary
+                                    if (rawOutput.TryGetValue("scores", out var scoresObj))
+                                    {
+                                        scores = JsonSerializer.Deserialize<Dictionary<string, int>>(scoresObj.ToString() ?? "{}")
+                                                  ?? new Dictionary<string, int>();
+                                    }
+
+                                    // Parse total_score
+                                    if (rawOutput.TryGetValue("total_score", out var totalObj))
+                                    {
+                                        if (int.TryParse(totalObj.ToString(), out int totalScore))
+                                            scores["TotalScore"] = totalScore;
+                                    }
+
+                                    // ✅ Save to DB
+                                    a.Score = JsonSerializer.Serialize(scores);
+                                    _unitOfWork.Save();
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Scoring failed for applicant {a.UserId}: {ex.Message}");
+                    }
+                }
+                else if (!string.IsNullOrEmpty(a.Score))
+                {
+                    scores = JsonSerializer.Deserialize<Dictionary<string, int>>(a.Score) ?? new Dictionary<string, int>();
+                }
+
+                // ✅ Build viewmodel
+                applicants.Add(new ApplicantViewModel
+                {
+                    UserId = a.UserId,
+                    Name = extracted?.Name ?? a.User?.Username ?? "",
+                    Email = extracted?.Email ?? a.User?.Email ?? "",
+                    ContactNo = extracted?.ContactNo ?? "",
+                    ResumeUrl = a.User?.ResumeUrl ?? "",
+                    Skills = extracted?.Skills ?? new List<string>(),
+                    ExperienceSummary = extracted?.ExperienceSummary ?? "",
+                    TotalExperienceYears = extracted?.TotalExperienceYears != null
+                        ? (int?)Math.Round(extracted.TotalExperienceYears.Value)
+                        : null,
+                    ProjectsBuilt = extracted?.ProjectsBuilt ?? new List<string>(),
+                    Achievements = extracted?.Achievements ?? new List<string>(),
+                    Scores = scores
+                });
+            }
+
+            // ✅ Sort by TotalScore before sending to view
+            var sortedApplicants = applicants
+                .OrderByDescending(a => a.Scores != null && a.Scores.ContainsKey("TotalScore")
+                                        ? a.Scores["TotalScore"] : 0)
+                .ToList();
+
+            return View("~/Views/User/HR/Applicants.cshtml", sortedApplicants);
         }
+
 
         [HttpGet]
         public async Task<IActionResult> EditJob(int jobId)
@@ -275,7 +387,7 @@ namespace DotnetMVCApp.Controllers
         {
             var job = _jobRepo.GetJobById(jobId);
 
-            if (job == null /* || job.PostedByUserId != GetCurrentHrId() */)
+            if (job == null)
                 return NotFound();
 
             _jobRepo.Delete(jobId);
