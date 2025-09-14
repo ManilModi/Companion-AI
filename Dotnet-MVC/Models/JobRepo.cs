@@ -28,10 +28,13 @@ namespace DotnetMVCApp.Repositories
             return _context.Jobs
                 .Include(j => j.PostedBy)
                 .Include(j => j.Applicants)
+                .ThenInclude(a => a.User)
+                .ThenInclude(u => u.Feedbacks)   // ✅ make sure User.Feedbacks are loaded
                 .Include(j => j.Interviews)
                 .Include(j => j.Feedbacks)
                 .FirstOrDefault(j => j.JobId == id);
         }
+
 
         public Job Add(Job job)
         {
