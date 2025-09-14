@@ -1,14 +1,15 @@
-﻿using DotnetMVCApp.Data;
+﻿using AutoMapper;
+using CloudinaryDotNet;
+using DotnetMVCApp.Attributes;
+using DotnetMVCApp.Data;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using Microsoft.EntityFrameworkCore;
-using AutoMapper;
-using CloudinaryDotNet;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-// Add MVC and DB
+// ------------------- Add MVC and DB -------------------
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -24,11 +25,8 @@ builder.Services.AddScoped<IFeedbackrepo, FeedbackRepo>();
 builder.Services.AddScoped<IUserJobRepo, UserJobRepo>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-
+// ------------------- AutoMapper -------------------
 builder.Services.AddAutoMapper(typeof(MappingProfile));
-
-
-builder.Services.AddSession();
 
 // ------------------- Cloudinary -------------------
 builder.Services.AddSingleton(x =>
@@ -53,7 +51,7 @@ builder.Services.AddAuthentication("MyCookieAuth")
         options.SlidingExpiration = true;
     });
 
-// ------------------- Session (optional, in-memory) -------------------
+// ------------------- Session -------------------
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".DotnetMVCApp.Session";
@@ -61,6 +59,12 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+
+// ------------------- Email Service (SMTP / Gmail) -------------------
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings")
+);
+builder.Services.AddTransient<EmailService>();
 
 var app = builder.Build();
 
