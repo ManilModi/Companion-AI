@@ -1,0 +1,43 @@
+﻿@model DotnetMVCApp.ViewModels.Feedback.FeedbackViewModel
+@{
+    Layout = "~/Views/Shared/_CandidateLayout.cshtml";
+    ViewData["Title"] = "Submit Feedback";
+}
+
+<div class="max-w-3xl mx-auto mt-10 p-6 bg-gray-800 rounded-2xl shadow-lg text-white">
+    <h1 class="text-3xl font-bold mb-6 text-center">📝 Give Feedback for Job</h1>
+
+    <div class="mb-4">
+        @* <p class="text-gray-400">Job ID: <span class="font-semibold">@Model.JobId</span></p> *@
+        <p class="text-gray-400">Candidate: <span class="font-semibold">@User.Identity.Name</span></p>
+    </div>
+
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="All" class="text-red-500 mb-4"></div>
+        <input type="hidden" asp-for="JobId" />
+
+        <div class="mb-6">
+            <label asp-for="FeedbackText" class="block text-gray-200 font-medium mb-2">Your Feedback</label>
+            <textarea asp-for="FeedbackText" rows="8"
+                      class="w-full px-4 py-3 rounded-xl bg-gray-700 border border-gray-600 text-gray-200 focus:outline-none focus:border-indigo-400"
+                      placeholder="Write your feedback here..."></textarea>
+            <span asp-validation-for="FeedbackText" class="text-red-500 text-sm"></span>
+        </div>
+
+        <div class="flex justify-end space-x-4">
+            <a asp-controller="Candidate" asp-action="JobSearch"
+               class="px-4 py-2 rounded-xl bg-gray-600 text-white hover:bg-gray-500 transition">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="px-4 py-2 rounded-xl bg-gradient-to-r from-green-400 to-green-600 text-white font-medium hover:shadow-lg transition">
+                Submit Feedback
+            </button>
+        </div>
+
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -61,16 +61,17 @@
                                 Withdraw Application
                             </button>
 
-                            <!-- ✅ Feedback Button -->
+                            <!-- ✅ Suggestions Button -->
                             <button type="button"
-                                    onclick="fetchFeedback(@job.JobId)"
+                                    onclick="fetchSuggestions(@job.JobId)"
                                     class="px-4 py-2 rounded-xl bg-indigo-500 text-white font-medium shadow-md hover:bg-indigo-600 transition">
-                                Feedback
+                                Suggestions
                             </button>
 
                             <!-- Hidden fields -->
                             <input type="hidden" id="resumeJson-@job.JobId" value='@Html.Raw(job.CandidateResumeJson ?? "{}")' />
                             <input type="hidden" id="jobDesc-@job.JobId" value="@job.Description" />
+
                         }
                         else
                         {
@@ -79,6 +80,13 @@
                                 Apply Now
                             </a>
                         }
+                        <a href="@Url.Action("JobFeedbacksCandidate", "Feedback", new { jobId = job.JobId })"
+                           class="px-4 py-2 rounded-xl bg-yellow-500 text-white font-medium shadow-md hover:bg-yellow-600 transition">
+                            Feedback
+                        </a>
+
+
+                        
                     </div>
                 </div>
 
@@ -149,25 +157,25 @@
     </div>
 </div>
 
-<!-- ✅ Feedback Modal -->
-<div id="feedbackModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+<!-- ✅ Suggestions Modal -->
+<div id="suggestionsModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
     <div class="bg-gray-900 text-gray-100 rounded-2xl shadow-xl w-full max-w-3xl p-6 relative">
         <!-- Header -->
         <div class="flex justify-between items-center border-b border-gray-700 pb-3 mb-4">
-            <h3 class="text-2xl font-bold text-white">Application Feedback</h3>
-            <button onclick="closeFeedbackModal()" class="text-gray-400 hover:text-gray-200 transition">
+            <h3 class="text-2xl font-bold text-white">Application Suggestions</h3>
+            <button onclick="closeSuggestionsModal()" class="text-gray-400 hover:text-gray-200 transition">
                 ✕
             </button>
         </div>
 
         <!-- Scrollable Content -->
-        <div id="feedbackContent" class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-            <p>Loading feedback...</p>
+        <div id="suggestionsContent" class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            <p>Loading suggestions...</p>
         </div>
 
         <!-- Footer -->
         <div class="flex justify-end mt-6 border-t border-gray-700 pt-4">
-            <button type="button" onclick="closeFeedbackModal()"
+            <button type="button" onclick="closeSuggestionsModal()"
                     class="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 font-medium hover:bg-gray-600 transition">
                 Close
             </button>
@@ -175,7 +183,7 @@
     </div>
 </div>
 
-</div>
+
 
 @section Scripts {
     <script>
@@ -208,7 +216,7 @@
             document.getElementById("withdrawModal").classList.add("hidden");
         }
 
-        async function fetchFeedback(jobId) {
+        async function fetchSuggestions(jobId) {
             const resumeJson = JSON.parse(document.getElementById(`resumeJson-${jobId}`).value || "{}");
             const jobDesc = document.getElementById(`jobDesc-${jobId}`).value || "";
 
@@ -224,11 +232,10 @@
                     body: JSON.stringify(requestData)
                 });
 
-                if (!response.ok) throw new Error("Failed to fetch feedback");
+                if (!response.ok) throw new Error("Failed to fetch suggestions");
                 const data = await response.json();
 
-                // ✅ No score displayed
-                document.getElementById("feedbackContent").innerHTML = `
+                document.getElementById("suggestionsContent").innerHTML = `
                     <div class="space-y-6">
                         <div>
                             <h4 class="text-lg font-semibold text-green-500">Strengths</h4>
@@ -250,12 +257,17 @@
                 `;
             } catch (err) {
                 console.error(err);
-                document.getElementById("feedbackContent").innerHTML =
-                    "<p class='text-red-600'>Error fetching feedback. Please try again later.</p>";
+                document.getElementById("suggestionsContent").innerHTML =
+                    "<p class='text-red-600'>Error fetching suggestions. Please try again later.</p>";
             }
 
-            document.getElementById("feedbackModal").classList.remove("hidden");
+            document.getElementById("suggestionsModal").classList.remove("hidden");
         }
+
+        function closeSuggestionsModal() {
+            document.getElementById("suggestionsModal").classList.add("hidden");
+        }
+
 
         function closeFeedbackModal() {
             document.getElementById("feedbackModal").classList.add("hidden");

@@ -1,0 +1,164 @@
+﻿@model IEnumerable<DotnetMVCApp.ViewModels.Feedback.FeedbackViewModel>
+@{
+    Layout = "~/Views/Shared/_CandidateLayout.cshtml";
+    ViewData["Title"] = "Job Feedbacks";
+
+    int userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+    var userFeedback = Model.FirstOrDefault(f => f.UserId == userId);
+    string jobTitle = Model.FirstOrDefault()?.JobTitle ?? "[Unknown Job]";
+    int jobId = Convert.ToInt32(ViewBag.JobId);
+
+}
+
+<h2 class="text-2xl font-bold mb-6 text-white text-center">📝 Feedbacks for Job: @jobTitle</h2>
+
+<div class="flex flex-col items-start mb-6 space-y-2">
+    @if (userFeedback != null)
+    {
+        <!-- Button stays fixed at top -->
+        <button type="button"
+                id="toggleUserFeedbackBtn-@userFeedback.FeedbackId"
+                class="px-4 py-2 rounded-xl bg-yellow-500 text-white font-medium shadow-md hover:bg-yellow-600 transition"
+                onclick="toggleUserFeedbackCard(@userFeedback.FeedbackId)">
+            View Your Feedback
+        </button>
+
+        <!-- Hidden feedback card appears below button -->
+        <div id="userFeedbackCard-@userFeedback.FeedbackId" class="hidden mt-2 w-full">
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-inner text-gray-100">
+                <h4 class="text-xl font-semibold mb-2">📝 Your Feedback</h4>
+                <p class="whitespace-pre-wrap">@userFeedback.FeedbackText</p>
+                @* <p class="text-sm mt-2 text-gray-400">
+                    Submitted URL:
+                    <a href="@userFeedback.FeedbackUrl" target="_blank" class="text-indigo-400 hover:underline">
+                        @userFeedback.FeedbackUrl
+                    </a>
+                </p> *@
+            </div>
+        </div>
+    }
+    else
+    {
+        <a href="@Url.Action("Create", "Feedback", new { jobId = jobId })"
+           class="px-4 py-2 rounded-xl bg-green-500 text-white font-medium shadow-md hover:bg-green-600 transition">
+            Give Feedback
+        </a>
+    }
+</div>
+
+
+@if (Model == null || !Model.Any())
+{
+    <div class="text-center text-gray-400 mt-10">
+        <p class="text-lg">❌ No feedback has been submitted for this job yet.</p>
+    </div>
+}
+else
+{
+    <div class="space-y-4 text-gray-100">
+        @foreach (var feedback in Model)
+        {
+            <div class="border border-gray-700 rounded-lg p-6 bg-gray-900 shadow-lg">
+                <!-- Summary Info -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-400">Candidate: @feedback.UserEmail</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button type="button"
+                                id="toggleFeedbackBtn-@feedback.FeedbackId"
+                                class="text-indigo-400 text-sm hover:underline focus:outline-none"
+                                onclick="toggleFeedbackCard(@feedback.FeedbackId)">
+                            Show More
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hidden card for details -->
+                <div id="feedbackCard-@feedback.FeedbackId" class="mt-4 hidden">
+                    <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-inner">
+                        <h4 class="text-xl font-semibold text-white mb-4">📄 Feedback Details</h4>
+
+                        <div class="mb-4">
+                            <p class="text-sm font-semibold text-gray-300 mb-1">Candidate Email:</p>
+                            <p class="text-sm text-gray-400">@feedback.UserEmail</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <p class="text-sm font-semibold text-gray-300 mb-1">Feedback:</p>
+                            <p class="text-sm text-gray-400 whitespace-pre-wrap">@feedback.FeedbackText</p>
+                        </div>
+
+                        @* <div class="mb-4">
+                            <p class="text-sm font-semibold text-gray-300 mb-1">Submitted URL:</p>
+                            <p class="text-sm text-indigo-400 hover:underline">
+                                <a href="@feedback.FeedbackUrl" target="_blank">@feedback.FeedbackUrl</a>
+                            </p>
+                        </div> *@
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function toggleFeedbackCard(feedbackId) {
+            const card = document.getElementById(`feedbackCard-${feedbackId}`);
+            const btn = document.getElementById(`toggleFeedbackBtn-${feedbackId}`);
+            if (!card || !btn) return;
+
+            const currentlyVisible = card.classList.contains("block");
+            if (currentlyVisible) {
+                card.classList.remove("block");
+                card.classList.add("hidden");
+                btn.innerText = "Show More";
+                return;
+            }
+
+            // Close any other open feedback cards
+            document.querySelectorAll('[id^="feedbackCard-"]').forEach(el => {
+                el.classList.remove("block");
+                el.classList.add("hidden");
+            });
+            document.querySelectorAll('[id^="toggleFeedbackBtn-"]').forEach(el => el.innerText = "Show More");
+
+            // Show current feedback
+            card.classList.remove("hidden");
+            card.classList.add("block");
+            btn.innerText = "Show Less";
+
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+                function toggleUserFeedbackCard(feedbackId) {
+            const card = document.getElementById(`userFeedbackCard-${feedbackId}`);
+            const btn = document.getElementById(`toggleUserFeedbackBtn-${feedbackId}`);
+            if (!card || !btn) return;
+
+            const currentlyVisible = card.classList.contains("block");
+            if (currentlyVisible) {
+                card.classList.remove("block");
+                card.classList.add("hidden");
+                btn.innerText = "View Your Feedback";
+                return;
+            }
+
+            // Close any other open feedback cards (optional, like other cards)
+            document.querySelectorAll('[id^="userFeedbackCard-"]').forEach(el => {
+                el.classList.remove("block");
+                el.classList.add("hidden");
+            });
+            document.querySelectorAll('[id^="toggleUserFeedbackBtn-"]').forEach(el => el.innerText = "View Your Feedback");
+
+            // Show current feedback
+            card.classList.remove("hidden");
+            card.classList.add("block");
+            btn.innerText = "Hide Your Feedback";
+
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+
+    </script>
+}

@@ -14,7 +14,8 @@ namespace DotnetMVCApp.Models
         public int JobId { get; set; }
         public Job? Job { get; set; }
 
-        public string? FeedbackText { get; set; }
+        // Store Cloudinary URL instead of full text
+        public string? FeedbackUrl { get; set; }
         public string? Sentiment { get; set; }
     }
 }

@@ -1,0 +1,94 @@
+﻿@model IEnumerable<DotnetMVCApp.ViewModels.Feedback.FeedbackViewModel>
+@{
+    Layout = "~/Views/Shared/_HRLayout.cshtml";
+    ViewData["Title"] = "Job Feedbacks";
+}
+
+<h2 class="text-2xl font-bold mb-6 text-white text-center">📝 Feedbacks for Job: @Model.FirstOrDefault()?.JobTitle</h2>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="text-center text-gray-400 mt-10">
+        <p class="text-lg">❌ No feedback has been submitted for this job yet.</p>
+    </div>
+}
+else
+{
+    <div class="space-y-4 text-gray-100">
+        @foreach (var feedback in Model)
+        {
+            <div class="border border-gray-700 rounded-lg p-6 bg-gray-900 shadow-lg">
+                <!-- Summary Info -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-400">Candidate: @feedback.UserEmail</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button type="button"
+                                id="toggleFeedbackBtn-@feedback.FeedbackId"
+                                class="text-indigo-400 text-sm hover:underline focus:outline-none"
+                                onclick="toggleFeedbackCard(@feedback.FeedbackId)">
+                            Show More
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hidden card for details -->
+                <div id="feedbackCard-@feedback.FeedbackId" class="mt-4 hidden">
+                    <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-inner">
+                        <h4 class="text-xl font-semibold text-white mb-4">📄 Feedback Details</h4>
+
+                        <div class="mb-4">
+                            <p class="text-sm font-semibold text-gray-300 mb-1">Candidate Email:</p>
+                            <p class="text-sm text-gray-400">@feedback.UserEmail</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <p class="text-sm font-semibold text-gray-300 mb-1">Feedback:</p>
+                            <p class="text-sm text-gray-400 whitespace-pre-wrap">@feedback.FeedbackText</p>
+                        </div>
+
+                        @* <div class="mb-4">
+                            <p class="text-sm font-semibold text-gray-300 mb-1">Submitted URL:</p>
+                            <p class="text-sm text-indigo-400 hover:underline">
+                                <a href="@feedback.FeedbackUrl" target="_blank">@feedback.FeedbackUrl</a>
+                            </p>
+                        </div> *@
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function toggleFeedbackCard(feedbackId) {
+            const card = document.getElementById(`feedbackCard-${feedbackId}`);
+            const btn = document.getElementById(`toggleFeedbackBtn-${feedbackId}`);
+            if (!card || !btn) return;
+
+            const currentlyVisible = card.classList.contains("block");
+            if (currentlyVisible) {
+                card.classList.remove("block");
+                card.classList.add("hidden");
+                btn.innerText = "Show More";
+                return;
+            }
+
+            // Close any other open feedback cards
+            document.querySelectorAll('[id^="feedbackCard-"]').forEach(el => {
+                el.classList.remove("block");
+                el.classList.add("hidden");
+            });
+            document.querySelectorAll('[id^="toggleFeedbackBtn-"]').forEach(el => el.innerText = "Show More");
+
+            // Show current feedback
+            card.classList.remove("hidden");
+            card.classList.add("block");
+            btn.innerText = "Show Less";
+
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    </script>
+}

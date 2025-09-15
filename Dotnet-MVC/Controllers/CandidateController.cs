@@ -218,6 +218,20 @@ namespace DotnetMVCApp.Controllers
 
                 // ✅ Attach candidate’s extracted resume info JSON
                 jobVm.CandidateResumeJson = extractedInfo;
+
+                var feedback = _unitOfWork.Feedbacks.GetByUserAndJob(userId, jobVm.JobId);
+
+
+                if (feedback != null)
+                {
+                    jobVm.HasFeedback = true;
+                    jobVm.FeedbackId = feedback.FeedbackId;
+                }
+                else
+                {
+                    jobVm.HasFeedback = false;
+                    jobVm.FeedbackId = null;
+                }
             }
 
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);

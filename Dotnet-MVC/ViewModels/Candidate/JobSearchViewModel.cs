@@ -20,5 +20,8 @@
         public DateTime CloseTime { get; set; }
 
         public string CandidateResumeJson { get; set; }
+        // 🔹 Feedback integration
+        public bool HasFeedback { get; set; }
+        public int? FeedbackId { get; set; }
     }
 }
