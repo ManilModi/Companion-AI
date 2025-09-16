@@ -41,18 +41,19 @@
             <!-- Navigation -->
             <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
                 <a class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-indigo-400 transition"
-                   asp-action="Overview">
+                   asp-controller="HR" asp-action="Overview">
                     <i class="fas fa-home w-5 mr-3 text-gray-400 group-hover:text-indigo-400"></i> Overview
                 </a>
                 <a class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-indigo-400 transition"
-                   asp-action="CreateJob">
+                   asp-controller="HR" asp-action="CreateJob">
                     <i class="fas fa-plus-circle w-5 mr-3 text-gray-400"></i> Create Job
                 </a>
                 <a class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-indigo-400 transition"
-                   asp-action="JobListings">
+                   asp-controller="HR" asp-action="JobListings">
                     <i class="fas fa-briefcase w-5 mr-3 text-gray-400"></i> Job Listings
                 </a>
             </nav>
+
 
             <!-- ✅ Logout Button at Bottom -->
             <div class="p-4 border-t border-gray-800">

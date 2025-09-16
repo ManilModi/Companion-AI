@@ -5,7 +5,7 @@
 
     int userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
     var userFeedback = Model.FirstOrDefault(f => f.UserId == userId);
-    string jobTitle = Model.FirstOrDefault()?.JobTitle ?? "[Unknown Job]";
+    string jobTitle = ViewBag.JobTitle as string;
     int jobId = Convert.ToInt32(ViewBag.JobId);
 
 }
@@ -13,38 +13,49 @@
 <h2 class="text-2xl font-bold mb-6 text-white text-center">📝 Feedbacks for Job: @jobTitle</h2>
 
 <div class="flex flex-col items-start mb-6 space-y-2">
-    @if (userFeedback != null)
-    {
-        <!-- Button stays fixed at top -->
-        <button type="button"
-                id="toggleUserFeedbackBtn-@userFeedback.FeedbackId"
-                class="px-4 py-2 rounded-xl bg-yellow-500 text-white font-medium shadow-md hover:bg-yellow-600 transition"
-                onclick="toggleUserFeedbackCard(@userFeedback.FeedbackId)">
-            View Your Feedback
-        </button>
+    <div class="flex flex-col items-start mb-6 space-y-2">
+        @if (userFeedback != null)
+        {
+            <!-- Buttons row: View toggle + Delete -->
+            <div class="flex items-center gap-3 mb-2">
+                <button type="button"
+                        id="toggleUserFeedbackBtn-@userFeedback.FeedbackId"
+                        class="text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium rounded-lg text-sm px-4 py-2 transition-all duration-200 shadow"
+                        onclick="toggleUserFeedbackCard(@userFeedback.FeedbackId)">
+                    View Your Feedback
+                </button>
 
-        <!-- Hidden feedback card appears below button -->
-        <div id="userFeedbackCard-@userFeedback.FeedbackId" class="hidden mt-2 w-full">
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-inner text-gray-100">
-                <h4 class="text-xl font-semibold mb-2">📝 Your Feedback</h4>
-                <p class="whitespace-pre-wrap">@userFeedback.FeedbackText</p>
-                @* <p class="text-sm mt-2 text-gray-400">
-                    Submitted URL:
-                    <a href="@userFeedback.FeedbackUrl" target="_blank" class="text-indigo-400 hover:underline">
-                        @userFeedback.FeedbackUrl
-                    </a>
-                </p> *@
+                <form asp-controller="Feedback"
+                      asp-action="Delete"
+                      method="post"
+                      onsubmit="return confirm('Are you sure you want to delete your feedback? This action cannot be undone.');"
+                      class="inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@userFeedback.FeedbackId" />
+                    <button type="submit"
+                            class="text-white bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:outline-none font-medium rounded-lg text-sm px-4 py-2 transition-all duration-200 shadow">
+                        Delete Feedback
+                    </button>
+                </form>
             </div>
-        </div>
-    }
-    else
-    {
-        <a href="@Url.Action("Create", "Feedback", new { jobId = jobId })"
-           class="px-4 py-2 rounded-xl bg-green-500 text-white font-medium shadow-md hover:bg-green-600 transition">
-            Give Feedback
-        </a>
-    }
-</div>
+
+            <!-- Hidden feedback card appears below buttons -->
+            <div id="userFeedbackCard-@userFeedback.FeedbackId" class="hidden mt-2 w-full">
+                <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-inner text-gray-100">
+                    <h4 class="text-xl font-semibold mb-2">📝 Your Feedback</h4>
+                    <p class="whitespace-pre-wrap">@userFeedback.FeedbackText</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <a href="@Url.Action("Create", "Feedback", new { jobId = jobId })"
+               class="px-4 py-2 rounded-xl bg-green-500 text-white font-medium shadow-md hover:bg-green-600 transition">
+                Give Feedback
+            </a>
+        }
+    </div>
+
 
 
 @if (Model == null || !Model.Any())

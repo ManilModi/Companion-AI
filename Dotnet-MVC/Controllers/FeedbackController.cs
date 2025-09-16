@@ -74,6 +74,7 @@ namespace DotnetMVCApp.Controllers
 
             // Get job info for JobTitle
             var job = _jobRepo.GetJobById(jobId);
+            Console.WriteLine("Job title "+job?.JobTitle);
             string jobTitle = job?.JobTitle ?? "[Unknown Job]";
 
             // Map to FeedbackViewModel
@@ -97,6 +98,7 @@ namespace DotnetMVCApp.Controllers
             // Check if current candidate has submitted feedback
             var userFeedback = _feedbackRepo.GetByUserAndJob(userId, jobId);
             ViewBag.JobId = jobId;
+            ViewBag.JobTitle = jobTitle;
             ViewBag.UserHasFeedback = userFeedback != null;
 
             // ✅ Return candidate-specific JobFeedbacks view
@@ -151,6 +153,73 @@ namespace DotnetMVCApp.Controllers
             return RedirectToAction("JobFeedbacksCandidate", "Feedback", new { jobId = model.JobId });
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Candidate")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            int userId = GetCurrentUserId();
+            var feedback = _feedbackRepo.GetFeedbackById(id);
+
+            if (feedback == null || feedback.UserId != userId)
+                return Forbid();
+
+            int jobId = feedback.JobId;
+
+            try
+            {
+                if (!string.IsNullOrEmpty(feedback.FeedbackUrl))
+                {
+                    Console.WriteLine($"[Delete] Original URL: {feedback.FeedbackUrl}");
+
+                    var uri = new Uri(feedback.FeedbackUrl);
+                    var path = uri.AbsolutePath;
+                    Console.WriteLine($"[Delete] Uri.AbsolutePath: {path}");
+
+                    var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                    Console.WriteLine("[Delete] Path parts:");
+                    for (int i = 0; i < parts.Length; i++)
+                    {
+                        Console.WriteLine($"   [{i}] {parts[i]}");
+                    }
+
+                    var uploadIndex = Array.IndexOf(parts, "upload");
+                    if (uploadIndex == -1 || uploadIndex + 2 >= parts.Length)
+                    {
+                        Console.WriteLine("[Delete] ERROR: Could not locate 'upload' or version in URL. Skipping Cloudinary deletion.");
+                    }
+                    else
+                    {
+                        // Keep folder + file name with extension
+                        var publicId = string.Join("/", parts.Skip(uploadIndex + 2)); // e.g., Feedbacks/feedback_user4_job11.txt
+                        Console.WriteLine($"[Delete] Trying Cloudinary publicId: {publicId}");
+
+                        var deletionParams = new DeletionParams(publicId)
+                        {
+                            ResourceType = ResourceType.Raw,
+                            Invalidate = true
+                        };
+
+                        var deletionResult = await _cloudinary.DestroyAsync(deletionParams);
+                        Console.WriteLine($"[Delete] Cloudinary delete result: {deletionResult.Result}, publicId used: {publicId}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Delete] Error deleting from Cloudinary: {ex.Message}");
+            }
+
+            _feedbackRepo.Delete(id);
+            Console.WriteLine($"[Delete] Feedback {id} deleted from DB for User {userId}, Job {jobId}");
+
+            return RedirectToAction("JobFeedbacksCandidate", "Feedback", new { jobId });
+        }
+
+
+
+
+
         // ---------------- Cloudinary Helper ----------------
         private string UploadFeedbackToCloudinary(string text, string fileName)
         {
@@ -162,8 +231,13 @@ namespace DotnetMVCApp.Controllers
             var uploadParams = new RawUploadParams
             {
                 File = new FileDescription(fileName + ".txt", stream),
-                Folder = "Feedbacks"
+                Folder = "Feedbacks",
+                UseFilename = true,
+                UniqueFilename = false,
+                
             };
+
+
 
             var result = _cloudinary.Upload(uploadParams);
 
