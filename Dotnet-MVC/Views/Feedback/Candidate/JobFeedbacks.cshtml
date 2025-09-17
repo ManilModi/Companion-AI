@@ -7,56 +7,43 @@
     var userFeedback = Model.FirstOrDefault(f => f.UserId == userId);
     string jobTitle = ViewBag.JobTitle as string;
     int jobId = Convert.ToInt32(ViewBag.JobId);
-
 }
 
 <h2 class="text-2xl font-bold mb-6 text-white text-center">📝 Feedbacks for Job: @jobTitle</h2>
 
 <div class="flex flex-col items-start mb-6 space-y-2">
-    <div class="flex flex-col items-start mb-6 space-y-2">
-        @if (userFeedback != null)
-        {
-            <!-- Buttons row: View toggle + Delete -->
-            <div class="flex items-center gap-3 mb-2">
-                <button type="button"
-                        id="toggleUserFeedbackBtn-@userFeedback.FeedbackId"
-                        class="text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium rounded-lg text-sm px-4 py-2 transition-all duration-200 shadow"
-                        onclick="toggleUserFeedbackCard(@userFeedback.FeedbackId)">
-                    View Your Feedback
-                </button>
+    @if (userFeedback != null)
+    {
+        <div class="flex items-center gap-3 mb-2">
+            <button type="button"
+                    id="toggleUserFeedbackBtn-@userFeedback.FeedbackId"
+                    class="text-white bg-indigo-600 hover:bg-indigo-700 font-medium rounded-lg text-sm px-4 py-2 transition shadow"
+                    onclick="toggleUserFeedbackCard(@userFeedback.FeedbackId)">
+                View Your Feedback
+            </button>
 
-                <form asp-controller="Feedback"
-                      asp-action="Delete"
-                      method="post"
-                      onsubmit="return confirm('Are you sure you want to delete your feedback? This action cannot be undone.');"
-                      class="inline">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@userFeedback.FeedbackId" />
-                    <button type="submit"
-                            class="text-white bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:outline-none font-medium rounded-lg text-sm px-4 py-2 transition-all duration-200 shadow">
-                        Delete Feedback
-                    </button>
-                </form>
+            <button type="button"
+                    class="text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-sm px-4 py-2 transition shadow"
+                    onclick="showDeleteModal(@userFeedback.FeedbackId)">
+                Delete Feedback
+            </button>
+        </div>
+
+        <div id="userFeedbackCard-@userFeedback.FeedbackId" class="hidden mt-2 w-full">
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-inner text-gray-100">
+                <h4 class="text-xl font-semibold mb-2">📝 Your Feedback</h4>
+                <p class="whitespace-pre-wrap">@userFeedback.FeedbackText</p>
             </div>
-
-            <!-- Hidden feedback card appears below buttons -->
-            <div id="userFeedbackCard-@userFeedback.FeedbackId" class="hidden mt-2 w-full">
-                <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-inner text-gray-100">
-                    <h4 class="text-xl font-semibold mb-2">📝 Your Feedback</h4>
-                    <p class="whitespace-pre-wrap">@userFeedback.FeedbackText</p>
-                </div>
-            </div>
-        }
-        else
-        {
-            <a href="@Url.Action("Create", "Feedback", new { jobId = jobId })"
-               class="px-4 py-2 rounded-xl bg-green-500 text-white font-medium shadow-md hover:bg-green-600 transition">
-                Give Feedback
-            </a>
-        }
-    </div>
-
-
+        </div>
+    }
+    else
+    {
+        <a href="@Url.Action("Create", "Feedback", new { jobId = jobId })"
+           class="px-4 py-2 rounded-xl bg-green-500 text-white font-medium shadow-md hover:bg-green-600 transition">
+            Give Feedback
+        </a>
+    }
+</div>
 
 @if (Model == null || !Model.Any())
 {
@@ -70,48 +57,47 @@ else
         @foreach (var feedback in Model)
         {
             <div class="border border-gray-700 rounded-lg p-6 bg-gray-900 shadow-lg">
-                <!-- Summary Info -->
                 <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-400">Candidate: @feedback.UserEmail</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button type="button"
-                                id="toggleFeedbackBtn-@feedback.FeedbackId"
-                                class="text-indigo-400 text-sm hover:underline focus:outline-none"
-                                onclick="toggleFeedbackCard(@feedback.FeedbackId)">
-                            Show More
-                        </button>
-                    </div>
+                    <p class="text-sm text-gray-400">Candidate: @feedback.UserEmail</p>
+                    <button type="button"
+                            id="toggleFeedbackBtn-@feedback.FeedbackId"
+                            class="text-indigo-400 text-sm hover:underline focus:outline-none"
+                            onclick="toggleFeedbackCard(@feedback.FeedbackId)">
+                        Show More
+                    </button>
                 </div>
 
-                <!-- Hidden card for details -->
                 <div id="feedbackCard-@feedback.FeedbackId" class="mt-4 hidden">
                     <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-inner">
                         <h4 class="text-xl font-semibold text-white mb-4">📄 Feedback Details</h4>
-
-                        <div class="mb-4">
-                            <p class="text-sm font-semibold text-gray-300 mb-1">Candidate Email:</p>
-                            <p class="text-sm text-gray-400">@feedback.UserEmail</p>
-                        </div>
-
-                        <div class="mb-4">
-                            <p class="text-sm font-semibold text-gray-300 mb-1">Feedback:</p>
-                            <p class="text-sm text-gray-400 whitespace-pre-wrap">@feedback.FeedbackText</p>
-                        </div>
-
-                        @* <div class="mb-4">
-                            <p class="text-sm font-semibold text-gray-300 mb-1">Submitted URL:</p>
-                            <p class="text-sm text-indigo-400 hover:underline">
-                                <a href="@feedback.FeedbackUrl" target="_blank">@feedback.FeedbackUrl</a>
-                            </p>
-                        </div> *@
+                        <p class="text-sm text-gray-400 whitespace-pre-wrap">@feedback.FeedbackText</p>
                     </div>
                 </div>
             </div>
         }
     </div>
 }
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-gray-800 p-6 rounded-xl w-96 text-center">
+        <h3 class="text-lg font-bold text-white mb-4">Confirm Delete</h3>
+        <p class="text-gray-300 mb-6">Are you sure you want to delete your feedback? This action cannot be undone.</p>
+        <div class="flex justify-around">
+            <form id="deleteForm" method="post" class="inline">
+                @Html.AntiForgeryToken()
+                <button type="submit"
+                        class="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition">
+                    Yes, Delete
+                </button>
+            </form>
+            <button id="cancelBtn"
+                    class="bg-gray-600 text-white px-4 py-2 rounded-xl hover:bg-gray-500 transition">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script>
@@ -120,56 +106,67 @@ else
             const btn = document.getElementById(`toggleFeedbackBtn-${feedbackId}`);
             if (!card || !btn) return;
 
-            const currentlyVisible = card.classList.contains("block");
-            if (currentlyVisible) {
+            const visible = card.classList.contains("block");
+            if (visible) {
                 card.classList.remove("block");
                 card.classList.add("hidden");
                 btn.innerText = "Show More";
-                return;
+            } else {
+                document.querySelectorAll('[id^="feedbackCard-"]').forEach(el => {
+                    el.classList.remove("block");
+                    el.classList.add("hidden");
+                });
+                document.querySelectorAll('[id^="toggleFeedbackBtn-"]').forEach(el => el.innerText = "Show More");
+
+                card.classList.remove("hidden");
+                card.classList.add("block");
+                btn.innerText = "Show Less";
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-
-            // Close any other open feedback cards
-            document.querySelectorAll('[id^="feedbackCard-"]').forEach(el => {
-                el.classList.remove("block");
-                el.classList.add("hidden");
-            });
-            document.querySelectorAll('[id^="toggleFeedbackBtn-"]').forEach(el => el.innerText = "Show More");
-
-            // Show current feedback
-            card.classList.remove("hidden");
-            card.classList.add("block");
-            btn.innerText = "Show Less";
-
-            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-                function toggleUserFeedbackCard(feedbackId) {
+
+        function toggleUserFeedbackCard(feedbackId) {
             const card = document.getElementById(`userFeedbackCard-${feedbackId}`);
             const btn = document.getElementById(`toggleUserFeedbackBtn-${feedbackId}`);
             if (!card || !btn) return;
 
-            const currentlyVisible = card.classList.contains("block");
-            if (currentlyVisible) {
+            const visible = card.classList.contains("block");
+            if (visible) {
                 card.classList.remove("block");
                 card.classList.add("hidden");
                 btn.innerText = "View Your Feedback";
-                return;
+            } else {
+                document.querySelectorAll('[id^="userFeedbackCard-"]').forEach(el => {
+                    el.classList.remove("block");
+                    el.classList.add("hidden");
+                });
+                document.querySelectorAll('[id^="toggleUserFeedbackBtn-"]').forEach(el => el.innerText = "View Your Feedback");
+
+                card.classList.remove("hidden");
+                card.classList.add("block");
+                btn.innerText = "Hide Your Feedback";
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-
-            // Close any other open feedback cards (optional, like other cards)
-            document.querySelectorAll('[id^="userFeedbackCard-"]').forEach(el => {
-                el.classList.remove("block");
-                el.classList.add("hidden");
-            });
-            document.querySelectorAll('[id^="toggleUserFeedbackBtn-"]').forEach(el => el.innerText = "View Your Feedback");
-
-            // Show current feedback
-            card.classList.remove("hidden");
-            card.classList.add("block");
-            btn.innerText = "Hide Your Feedback";
-
-            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
+        // Delete Modal Functions
+        const deleteModal = document.getElementById("deleteModal");
+        const cancelBtn = document.getElementById("cancelBtn");
+        const deleteForm = document.getElementById("deleteForm");
 
+        function showDeleteModal(feedbackId) {
+            deleteForm.action = `/Feedback/Delete?id=${feedbackId}`;
+            deleteModal.classList.remove("hidden");
+        }
+
+        cancelBtn.addEventListener("click", () => {
+            deleteModal.classList.add("hidden");
+        });
+
+        deleteModal.addEventListener("click", (e) => {
+            if (e.target === deleteModal) {
+                deleteModal.classList.add("hidden");
+            }
+        });
     </script>
 }

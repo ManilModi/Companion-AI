@@ -1,0 +1,87 @@
+﻿@model DotnetMVCApp.ViewModels.UpdateUserViewModel
+
+@{
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+    Layout = role == "HR" ? "_HRLayout" : "_CandidateLayout";
+    ViewData["Title"] = "Profile";
+}
+
+<div class="flex min-h-screen items-center justify-center bg-gray-900 px-4 sm:px-6 lg:px-8 py-10">
+    <div class="w-full max-w-md sm:max-w-lg lg:max-w-xl bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-700">
+        <h2 class="text-2xl sm:text-3xl font-bold text-center text-white mb-6">My Profile 👤</h2>
+
+        @if (TempData["Message"] != null)
+        {
+            <div class="mb-4 p-3 text-sm sm:text-base text-green-400 bg-gray-700 border border-green-500 rounded-xl text-center">
+                @TempData["Message"]
+            </div>
+        }
+
+        <div class="space-y-4 text-gray-300">
+            <div>
+                <span class="block text-sm sm:text-base font-medium text-gray-400">Username</span>
+                <p class="mt-1 px-4 py-2 sm:px-6 sm:py-3 bg-gray-700 rounded-xl break-words">@Model.Username</p>
+            </div>
+
+            <div>
+                <span class="block text-sm sm:text-base font-medium text-gray-400">Email</span>
+                <p class="mt-1 px-4 py-2 sm:px-6 sm:py-3 bg-gray-700 rounded-xl break-words">@Model.Email</p>
+            </div>
+        </div>
+
+        <div class="mt-6 space-y-3">
+            <a asp-action="UpdateUser" asp-route-id="@Model.UserId"
+               class="block w-full text-center bg-indigo-600 text-white py-2 sm:py-3 rounded-xl shadow-md hover:bg-indigo-700 transition text-sm sm:text-base">
+                ✏️ Edit Profile
+            </a>
+
+            <!-- Delete Account Button triggers Modal -->
+            <button type="button" id="deleteBtn"
+                    class="w-full bg-red-600 text-white py-2 sm:py-3 rounded-xl shadow-md hover:bg-red-700 transition text-sm sm:text-base">
+                🗑️ Delete My Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden px-4">
+    <div class="bg-gray-800 p-6 sm:p-8 rounded-2xl w-full max-w-sm sm:max-w-md text-center">
+        <h3 class="text-lg sm:text-xl font-bold text-white mb-4">Confirm Delete</h3>
+        <p class="text-gray-300 mb-6 text-sm sm:text-base">Are you sure you want to delete your account? This action cannot be undone.</p>
+        <div class="flex flex-col sm:flex-row justify-around gap-3 sm:gap-4">
+            <form asp-action="DeleteUser" asp-route-id="@Model.UserId" method="post" class="flex-1">
+                <button type="submit"
+                        class="w-full bg-red-600 text-white px-4 py-2 sm:py-3 rounded-xl hover:bg-red-700 transition">
+                    Yes, Delete
+                </button>
+            </form>
+            <button id="cancelBtn"
+                    class="w-full flex-1 bg-gray-600 text-white px-4 py-2 sm:py-3 rounded-xl hover:bg-gray-500 transition">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const deleteBtn = document.getElementById('deleteBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        deleteBtn.addEventListener('click', () => {
+            deleteModal.classList.remove('hidden');
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            deleteModal.classList.add('hidden');
+        });
+
+        deleteModal.addEventListener('click', (e) => {
+            if(e.target === deleteModal){
+                deleteModal.classList.add('hidden');
+            }
+        });
+    </script>
+}

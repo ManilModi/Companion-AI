@@ -1,0 +1,30 @@
+﻿@model DotnetMVCApp.ViewModels.ForgotPasswordViewModel
+
+<div class="flex min-h-screen items-center justify-center bg-gray-900">
+    <div class="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-2xl">
+        <h2 class="text-2xl font-bold text-center text-white mb-6">Verify OTP 🔐</h2>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="mb-4 text-red-400 text-center">@TempData["Error"]</div>
+        }
+
+        <form asp-action="VerifyRegisterOtp" method="post" class="space-y-5">
+            <input type="hidden" asp-for="Email" />
+
+            <div>
+                <label asp-for="OTP" class="block text-sm font-medium text-gray-300"></label>
+                <input asp-for="OTP" type="text"
+                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white
+                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
+                       placeholder="Enter OTP sent to @Model.Email" />
+                <span asp-validation-for="OTP" class="text-red-400 text-sm"></span>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-green-600 text-white py-2 rounded-xl shadow-md hover:bg-green-700 transition">
+                Verify OTP & Complete Registration
+            </button>
+        </form>
+    </div>
+</div>

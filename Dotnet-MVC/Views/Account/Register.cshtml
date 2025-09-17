@@ -12,7 +12,8 @@
             <div>
                 <label asp-for="Username" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="Username"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
+                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
                        placeholder="Choose a username" />
                 <span asp-validation-for="Username" class="text-red-400 text-sm"></span>
             </div>
@@ -20,7 +21,8 @@
             <div>
                 <label asp-for="Email" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="Email" type="email"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
+                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
                        placeholder="Enter your email" />
                 <span asp-validation-for="Email" class="text-red-400 text-sm"></span>
             </div>
@@ -28,7 +30,8 @@
             <div>
                 <label asp-for="Password" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="Password" type="password"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
+                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
                        placeholder="Create a password" />
                 <span asp-validation-for="Password" class="text-red-400 text-sm"></span>
             </div>
@@ -36,7 +39,8 @@
             <div>
                 <label asp-for="ConfirmPassword" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="ConfirmPassword" type="password"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
+                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
                        placeholder="Re-enter your password" />
                 <span asp-validation-for="ConfirmPassword" class="text-red-400 text-sm"></span>
             </div>
@@ -44,7 +48,8 @@
             <div>
                 <label asp-for="Role" class="block text-sm font-medium text-gray-300"></label>
                 <select asp-for="Role"
-                        class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
+                               focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     <option value="">-- Select Role --</option>
                     <option value="HR">HR</option>
                     <option value="Candidate">Candidate</option>

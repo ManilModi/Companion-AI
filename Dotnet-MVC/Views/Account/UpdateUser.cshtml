@@ -1,0 +1,159 @@
+﻿@model DotnetMVCApp.ViewModels.UpdateUserViewModel
+
+@{
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+    Layout = role == "HR" ? "_HRLayout" : "_CandidateLayout";
+    ViewData["Title"] = "Update Profile";
+}
+
+<div class="flex min-h-screen items-center justify-center bg-gray-900 p-4">
+    <div class="w-full max-w-lg bg-gray-800 p-8 rounded-2xl shadow-2xl">
+        <h2 class="text-2xl font-bold text-center text-white mb-6">Update Profile 👤</h2>
+
+        @if (TempData["Message"] != null)
+        {
+            <div class="mb-4 p-3 text-sm text-green-400 bg-gray-700 border border-green-500 rounded-xl text-center">
+                @TempData["Message"]
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="mb-4 p-3 text-sm text-red-400 bg-gray-700 border border-red-500 rounded-xl text-center">
+                @TempData["Error"]
+            </div>
+        }
+
+        <form id="updateForm" asp-action="UpdateUser" method="post" class="space-y-4 text-gray-300">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="UserId" />
+
+            <div>
+                <label asp-for="Username" class="block text-sm font-medium text-gray-400">Username</label>
+                <input asp-for="Username" class="mt-1 w-full px-4 py-2 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span asp-validation-for="Username" class="text-red-500 text-sm"></span>
+            </div>
+
+            <div>
+                <label asp-for="Email" class="block text-sm font-medium text-gray-400">Email</label>
+                <input asp-for="Email" class="mt-1 w-full px-4 py-2 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span asp-validation-for="Email" class="text-red-500 text-sm"></span>
+            </div>
+
+            <div>
+                <label asp-for="NewPassword" class="block text-sm font-medium text-gray-400">New Password</label>
+                <input asp-for="NewPassword" type="password" class="mt-1 w-full px-4 py-2 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span asp-validation-for="NewPassword" class="text-red-500 text-sm"></span>
+            </div>
+
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-xl shadow-md hover:bg-indigo-700 transition">
+                Save Changes
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Global Loading Overlay -->
+<div id="globalLoading" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="animate-spin rounded-full h-14 w-14 border-4 border-indigo-500 border-t-transparent"></div>
+</div>
+
+<!-- OTP Modal -->
+<div id="otpModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-xl w-96 text-center shadow-2xl">
+        <h3 class="text-lg font-bold text-white mb-4">Confirm Changes</h3>
+        <p class="text-gray-300 mb-4">An OTP has been sent to your email. Please enter it to confirm sensitive profile changes.</p>
+        <input id="otpInput" type="text" maxlength="6"
+               class="w-full px-4 py-2 rounded-xl bg-gray-700 text-white mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+               placeholder="Enter OTP" />
+        <div class="flex justify-around">
+            <button id="confirmOtpBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition">
+                Verify OTP
+            </button>
+            <button id="cancelOtpBtn" class="bg-gray-600 text-white px-4 py-2 rounded-xl hover:bg-gray-500 transition">
+                Cancel
+            </button>
+        </div>
+        <div id="otpError" class="text-red-500 mt-2 text-sm hidden">Invalid OTP.</div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const updateForm = document.getElementById('updateForm');
+        const otpModal = document.getElementById('otpModal');
+        const confirmOtpBtn = document.getElementById('confirmOtpBtn');
+        const cancelOtpBtn = document.getElementById('cancelOtpBtn');
+        const otpInput = document.getElementById('otpInput');
+        const otpError = document.getElementById('otpError');
+        const globalLoading = document.getElementById('globalLoading');
+
+        updateForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            otpError.classList.add('hidden');
+
+            // Show global loader
+            globalLoading.classList.remove('hidden');
+
+            const formData = new FormData(updateForm);
+            const response = await fetch('@Url.Action("UpdateUser")', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            // Hide global loader
+            globalLoading.classList.add('hidden');
+
+            if (result.otpRequired) {
+                otpModal.classList.remove('hidden');
+                otpInput.value = '';
+                otpInput.focus();
+            } else if (result.redirectUrl) {
+                window.location.href = result.redirectUrl;
+            } else {
+                otpError.innerText = 'Unexpected error. Try again.';
+                otpError.classList.remove('hidden');
+            }
+        });
+
+        cancelOtpBtn.addEventListener('click', () => {
+            otpModal.classList.add('hidden');
+            otpInput.value = '';
+            otpError.classList.add('hidden');
+        });
+
+        confirmOtpBtn.addEventListener('click', async () => {
+            const otp = otpInput.value.trim();
+            if (otp.length !== 6) {
+                otpError.innerText = 'Enter a 6-digit OTP.';
+                otpError.classList.remove('hidden');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('OTP', otp);
+
+            const response = await fetch('@Url.Action("VerifyUpdateOtp")', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                otpError.innerText = 'Invalid OTP or session expired.';
+                otpError.classList.remove('hidden');
+            }
+        });
+
+        otpModal.addEventListener('click', e => {
+            if (e.target === otpModal) {
+                otpModal.classList.add('hidden');
+                otpInput.value = '';
+                otpError.classList.add('hidden');
+            }
+        });
+    </script>
+}

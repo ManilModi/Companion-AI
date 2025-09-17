@@ -52,6 +52,10 @@
                    asp-controller="HR" asp-action="JobListings">
                     <i class="fas fa-briefcase w-5 mr-3 text-gray-400"></i> Job Listings
                 </a>
+                <a class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-indigo-400 transition"
+                   asp-controller="Account" asp-action="Profile" asp-route-id="@User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)">
+                    <i class="fas fa-user w-5 mr-3 text-gray-400"></i> Account
+                </a>
             </nav>
 
 

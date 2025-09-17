@@ -1,8 +1,10 @@
-﻿using System.Security.Claims;
+﻿using System.Net;
+using System.Net.Mail;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using DotnetMVCApp.Models;
 using DotnetMVCApp.Attributes;
+using DotnetMVCApp.Models;
 using DotnetMVCApp.ViewModels;
 using HiringAssistance.Models;
 using Microsoft.AspNetCore.Authentication;
@@ -30,6 +32,23 @@ namespace DotnetMVCApp.Controllers
             return Convert.ToBase64String(saltBytes);
         }
 
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new MailAddress(email); // Syntax check
+                string domain = addr.Host;
+
+                // Check MX records
+                var entries = Dns.GetHostEntry(domain);
+                return entries != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private string HashPassword(string password, string salt)
         {
             using var sha256 = SHA256.Create();
@@ -52,7 +71,7 @@ namespace DotnetMVCApp.Controllers
         public IActionResult Register() => View(new RegisterViewModel());
 
         [HttpPost]
-        public IActionResult Register(RegisterViewModel model)
+        public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
 
@@ -62,10 +81,88 @@ namespace DotnetMVCApp.Controllers
                 return View(model);
             }
 
-            string salt = GenerateSalt();
-            string hashedPassword = HashPassword(model.Password, salt);
+            if (!IsValidEmail(model.Email))
+            {
+                ModelState.AddModelError("", "Invalid or non-existent email domain.");
+                return View(model);
+            }
 
-            var roleValue = model.Role switch
+            // Generate OTP
+            var otp = GenerateOtp();
+            HttpContext.Session.SetString("RegisterOtp", otp);
+            HttpContext.Session.SetString("RegisterUser", System.Text.Json.JsonSerializer.Serialize(model));
+            HttpContext.Session.SetString("RegisterOtpExpiry", DateTime.UtcNow.AddMinutes(10).ToString());
+
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    model.Email,
+                    "Registration OTP",
+                    $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"
+                );
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Failed to send OTP. Try again.");
+                Console.WriteLine(ex.Message);
+                return View(model);
+            }
+
+            return RedirectToAction("VerifyRegisterOtp");
+        }
+
+        [HttpGet]
+        public IActionResult VerifyRegisterOtp()
+        {
+            if (HttpContext.Session.GetString("RegisterOtp") == null)
+            {
+                TempData["Error"] = "Please register first.";
+                return RedirectToAction("Register");
+            }
+
+            // Keep email visible for UX
+            var userData = HttpContext.Session.GetString("RegisterUser");
+            if (userData != null)
+            {
+                var regModel = System.Text.Json.JsonSerializer.Deserialize<RegisterViewModel>(userData);
+                return View(new ForgotPasswordViewModel { Email = regModel.Email });
+            }
+
+            return View(new ForgotPasswordViewModel());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyRegisterOtp(ForgotPasswordViewModel model)
+        {
+            var storedOtp = HttpContext.Session.GetString("RegisterOtp");
+            var expiryString = HttpContext.Session.GetString("RegisterOtpExpiry");
+            var userData = HttpContext.Session.GetString("RegisterUser");
+
+            if (storedOtp == null || expiryString == null || userData == null)
+            {
+                TempData["Error"] = "OTP expired. Please register again.";
+                return RedirectToAction("Register");
+            }
+
+            if (DateTime.UtcNow > DateTime.Parse(expiryString))
+            {
+                TempData["Error"] = "OTP expired. Please register again.";
+                return RedirectToAction("Register");
+            }
+
+            if (model.OTP != storedOtp)
+            {
+                TempData["Error"] = "Invalid OTP.";
+                return View(model);
+            }
+
+            // OTP correct -> complete registration
+            var regModel = System.Text.Json.JsonSerializer.Deserialize<RegisterViewModel>(userData);
+
+            string salt = GenerateSalt();
+            string hashedPassword = HashPassword(regModel.Password, salt);
+
+            var roleValue = regModel.Role switch
             {
                 "HR" => UserRole.HR,
                 "Candidate" => UserRole.Candidate,
@@ -74,16 +171,50 @@ namespace DotnetMVCApp.Controllers
 
             var user = new User
             {
-                Username = model.Username,
-                Email = model.Email,
+                Username = regModel.Username,
+                Email = regModel.Email,
                 Password = hashedPassword,
                 Salt = salt,
                 Role = roleValue
             };
 
             _userRepo.Add(user);
-            return RedirectToAction("Login");
+
+            // Clear registration session
+            HttpContext.Session.Remove("RegisterOtp");
+            HttpContext.Session.Remove("RegisterUser");
+            HttpContext.Session.Remove("RegisterOtpExpiry");
+
+            // ---------- Auto-login after registration ----------
+            var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+        new Claim(ClaimTypes.Name, user.Username),
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim(ClaimTypes.Role, user.Role.ToString())
+    };
+
+            var claimsIdentity = new ClaimsIdentity(claims, "MyCookieAuth");
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(15)
+            };
+
+            await HttpContext.SignInAsync("MyCookieAuth",
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+
+            // Redirect based on role like login flow
+            return user.Role switch
+            {
+                UserRole.HR => RedirectToAction("Overview", "HR"),
+                UserRole.Candidate => RedirectToAction("Dashboard", "Candidate"),
+                _ => RedirectToAction("Index", "Home")
+            };
         }
+
+
 
         // ---------------- Login ----------------
         [HttpGet]
@@ -101,18 +232,81 @@ namespace DotnetMVCApp.Controllers
                 return View(model);
             }
 
-            // Session
-            HttpContext.Session.SetInt32("UserId", user.UserId);
-            HttpContext.Session.SetString("UserEmail", user.Email);
-            HttpContext.Session.SetString("UserRole", user.Role.ToString());
+            // Generate OTP
+            var otp = GenerateOtp();
+            HttpContext.Session.SetString("LoginOtp", otp);
+            HttpContext.Session.SetString("LoginUserId", user.UserId.ToString());
+            HttpContext.Session.SetString("LoginOtpExpiry", DateTime.UtcNow.AddMinutes(10).ToString());
 
-            // Cookie Authentication
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    model.Email,
+                    "Login OTP",
+                    $"<p>Your login OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"
+                );
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Failed to send OTP. Please try again.");
+                Console.WriteLine(ex.Message);
+                return View(model);
+            }
+
+            return RedirectToAction("VerifyLoginOtp");
+        }
+
+        [HttpGet]
+        public IActionResult VerifyLoginOtp()
+        {
+            if (HttpContext.Session.GetString("LoginOtp") == null)
+            {
+                TempData["Error"] = "Please log in first.";
+                return RedirectToAction("Login");
+            }
+            return View(new ForgotPasswordViewModel());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyLoginOtp(ForgotPasswordViewModel model)
+        {
+            var storedOtp = HttpContext.Session.GetString("LoginOtp");
+            var userIdStr = HttpContext.Session.GetString("LoginUserId");
+            var expiryString = HttpContext.Session.GetString("LoginOtpExpiry");
+
+            if (storedOtp == null || userIdStr == null || expiryString == null)
+            {
+                TempData["Error"] = "OTP expired. Try logging in again.";
+                return RedirectToAction("Login");
+            }
+
+            if (DateTime.UtcNow > DateTime.Parse(expiryString))
+            {
+                TempData["Error"] = "OTP expired. Try logging in again.";
+                return RedirectToAction("Login");
+            }
+
+            if (model.OTP != storedOtp)
+            {
+                TempData["Error"] = "Invalid OTP.";
+                return View(model);
+            }
+
+            var user = _userRepo.GetUserById(int.Parse(userIdStr));
+            if (user == null) return RedirectToAction("Login");
+
+            // Clear OTP session
+            HttpContext.Session.Remove("LoginOtp");
+            HttpContext.Session.Remove("LoginUserId");
+            HttpContext.Session.Remove("LoginOtpExpiry");
+
+            // Do authentication
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
+              new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+              new Claim(ClaimTypes.Name, user.Username),
+              new Claim(ClaimTypes.Email, user.Email),
+              new Claim(ClaimTypes.Role, user.Role.ToString())
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, "MyCookieAuth");
@@ -133,6 +327,7 @@ namespace DotnetMVCApp.Controllers
                 _ => RedirectToAction("Login")
             };
         }
+
 
         // ---------------- Logout ----------------
         [HttpPost]
@@ -261,5 +456,256 @@ namespace DotnetMVCApp.Controllers
             TempData["Message"] = "Password reset successfully! You can now log in.";
             return RedirectToAction("Login");
         }
+
+        // ---------------- Update User ----------------
+        [HttpGet]
+        public IActionResult UpdateUser(int id)
+        {
+            var user = _userRepo.GetUserById(id);
+            if (user == null) return NotFound();
+
+            var model = new UpdateUserViewModel
+            {
+                UserId = user.UserId,
+                Username = user.Username,
+                Email = user.Email,
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateUser(UpdateUserViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = _userRepo.GetUserById(model.UserId);
+            if (user == null) return NotFound();
+
+            bool sensitiveChange = false;
+
+            user.Username = model.Username;
+
+            // Check if email changed
+            if (!string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!IsValidEmail(model.Email))
+                {
+                    ModelState.AddModelError("Email", "Invalid email address or domain.");
+                    return View(model);
+                }
+
+                if (_userRepo.GetUserByEmail(model.Email) != null)
+                {
+                    ModelState.AddModelError("Email", "Email is already registered.");
+                    return View(model);
+                }
+
+                user.Email = model.Email;
+                sensitiveChange = true;
+            }
+
+            // Check if password is changed
+            if (!string.IsNullOrEmpty(model.NewPassword))
+            {
+                var salt = GenerateSalt();
+                user.Password = HashPassword(model.NewPassword, salt);
+                user.Salt = salt;
+                sensitiveChange = true;
+            }
+
+            // If sensitive changes, send OTP
+            if (sensitiveChange)
+            {
+                var otp = GenerateOtp();
+                HttpContext.Session.SetString("UpdateUserOtp", otp);
+                HttpContext.Session.SetString("UpdateUserId", user.UserId.ToString());
+                HttpContext.Session.SetString("UpdateOtpExpiry", DateTime.UtcNow.AddMinutes(10).ToString());
+
+                try
+                {
+                    await _emailService.SendEmailAsync(
+                        user.Email,
+                        "Profile Update OTP",
+                        $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"
+                    );
+                }
+                catch
+                {
+                    ModelState.AddModelError("", "Failed to send OTP. Try again.");
+                    return View(model);
+                }
+
+                // Keep model in session for final update after OTP
+                HttpContext.Session.SetString("PendingUpdateUser", System.Text.Json.JsonSerializer.Serialize(model));
+
+                return Json(new { otpRequired = true }); // Tell JS to show modal
+            }
+
+            // If no sensitive change, just update
+            _userRepo.Update(user);
+            TempData["Message"] = "Profile updated successfully!";
+            return Json(new { redirectUrl = Url.Action("Profile", new { id = user.UserId }) });
+        }
+
+        [HttpGet]
+        public IActionResult VerifyUpdateOtp()
+        {
+            if (HttpContext.Session.GetString("UpdateUserOtp") == null)
+            {
+                TempData["Error"] = "No update in progress.";
+                return RedirectToAction("Profile");
+            }
+            return View(new ForgotPasswordViewModel()); // reuse simple OTP model
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyUpdateOtp(ForgotPasswordViewModel model)
+        {
+            // Retrieve OTP, expiry, and pending user data from session
+            var storedOtp = HttpContext.Session.GetString("UpdateUserOtp");
+            var expiryString = HttpContext.Session.GetString("UpdateOtpExpiry");
+            var userData = HttpContext.Session.GetString("PendingUpdateUser"); // was UpdateUserModel
+
+            // Validate session existence
+            if (string.IsNullOrEmpty(storedOtp) || string.IsNullOrEmpty(expiryString) || string.IsNullOrEmpty(userData))
+            {
+                TempData["Error"] = "OTP session expired. Please try updating your profile again.";
+                return RedirectToAction("Profile");
+            }
+
+            // Validate OTP expiry
+            if (DateTime.UtcNow > DateTime.Parse(expiryString))
+            {
+                HttpContext.Session.Remove("UpdateUserOtp");
+                HttpContext.Session.Remove("UpdateUserModel");
+                HttpContext.Session.Remove("UpdateOtpExpiry");
+
+                TempData["Error"] = "OTP expired. Please try updating your profile again.";
+                return RedirectToAction("Profile");
+            }
+
+            // Validate OTP correctness
+            if (model.OTP != storedOtp)
+            {
+                ModelState.AddModelError("", "Invalid OTP.");
+                return View(model);
+            }
+
+            // Deserialize pending user update data
+            var updateModel = System.Text.Json.JsonSerializer.Deserialize<UpdateUserViewModel>(userData);
+            var user = _userRepo.GetUserById(updateModel.UserId);
+            if (user == null)
+            {
+                TempData["Error"] = "User not found.";
+                return RedirectToAction("Profile");
+            }
+
+            bool isCurrentUser = User.FindFirstValue(ClaimTypes.NameIdentifier) == user.UserId.ToString();
+
+            // Apply updates
+            user.Username = updateModel.Username;
+            user.Email = updateModel.Email;
+
+            if (!string.IsNullOrEmpty(updateModel.NewPassword))
+            {
+                var salt = GenerateSalt();
+                user.Password = HashPassword(updateModel.NewPassword, salt);
+                user.Salt = salt;
+            }
+
+            _userRepo.Update(user);
+
+            // Refresh authentication claims if updating own profile
+            if (isCurrentUser)
+            {
+                await HttpContext.SignOutAsync("MyCookieAuth");
+
+                var claims = new List<Claim>
+                {
+                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                     new Claim(ClaimTypes.Name, user.Username),
+                     new Claim(ClaimTypes.Email, user.Email),
+                     new Claim(ClaimTypes.Role, user.Role.ToString())
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, "MyCookieAuth");
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(15)
+                };
+
+                await HttpContext.SignInAsync("MyCookieAuth", new ClaimsPrincipal(claimsIdentity), authProperties);
+            }
+
+            // Clear OTP session
+            HttpContext.Session.Remove("UpdateUserOtp");
+            HttpContext.Session.Remove("PendingUpdateUser");
+            HttpContext.Session.Remove("UpdateOtpExpiry");
+
+
+            TempData["Message"] = "Profile updated successfully!";
+            return RedirectToAction("Profile", new { id = user.UserId });
+        }
+
+
+        // ---------------- Delete User ----------------
+        [HttpPost]
+        public async Task<IActionResult> DeleteUser()
+        {
+            var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(loggedInUserId))
+            {
+                return RedirectToAction("Login");
+            }
+
+            var user = _userRepo.GetUserById(int.Parse(loggedInUserId));
+            if (user == null) return NotFound();
+
+            _userRepo.Delete(user.UserId);
+
+            // Clear session and logout
+            HttpContext.Session.Clear();
+            await HttpContext.SignOutAsync("MyCookieAuth");
+
+            TempData["Message"] = "Your account has been deleted successfully.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        //------search user profile------
+        [HttpGet]
+        public IActionResult Profile(int? id)
+        {
+            // If no ID is provided, use logged-in user's ID
+            if (id == null)
+            {
+                var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (loggedInUserId == null)
+                {
+                    TempData["Error"] = "Please log in first.";
+                    return RedirectToAction("Login");
+                }
+                id = int.Parse(loggedInUserId);
+            }
+
+            var user = _userRepo.GetUserById(id.Value);
+            if (user == null)
+            {
+                TempData["Error"] = "User not found.";
+                return RedirectToAction("Login");
+            }
+
+            // Map to view model
+            var model = new UpdateUserViewModel
+            {
+                UserId = user.UserId,
+                Username = user.Username,
+                Email = user.Email
+            };
+
+            return View(model);
+        }
+
     }
 }
