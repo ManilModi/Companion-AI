@@ -54,9 +54,21 @@ namespace DotnetMVCApp.Controllers
                     UserId = f.UserId,
                     UserEmail = f.User?.Email,
                     FeedbackUrl = f.FeedbackUrl,
-                    FeedbackText = feedbackText
+                    FeedbackText = feedbackText,
+                    Sentiment = f.Sentiment
                 });
             }
+            double? avgSentiment = null;
+            if (feedbackEntities.Count(f => f.Sentiment.HasValue) >= 10)
+            {
+                avgSentiment = feedbackEntities
+                    .Where(f => f.Sentiment.HasValue)
+                    .Average(f => f.Sentiment.Value) * 100;
+            }
+
+            ViewBag.AvgSentimentPercent = avgSentiment;
+            ViewBag.JobTitle = jobTitle;
+
 
             return View("HR/JobFeedbacks", feedbacks);
         }
@@ -91,15 +103,25 @@ namespace DotnetMVCApp.Controllers
                     UserId = f.UserId,
                     UserEmail = f.User?.Email,
                     FeedbackUrl = f.FeedbackUrl,
-                    FeedbackText = feedbackText
+                    FeedbackText = feedbackText,
+                    Sentiment = f.Sentiment
                 });
             }
 
-            // Check if current candidate has submitted feedback
+            double? avgSentiment = null;
+            if (feedbackEntities.Count(f => f.Sentiment.HasValue) >= 10)
+            {
+                avgSentiment = feedbackEntities
+                    .Where(f => f.Sentiment.HasValue)
+                    .Average(f => f.Sentiment.Value) * 100;
+            }
+
             var userFeedback = _feedbackRepo.GetByUserAndJob(userId, jobId);
+
             ViewBag.JobId = jobId;
             ViewBag.JobTitle = jobTitle;
             ViewBag.UserHasFeedback = userFeedback != null;
+            ViewBag.AvgSentimentPercent = avgSentiment;
 
             // ✅ Return candidate-specific JobFeedbacks view
             return View("~/Views/Feedback/Candidate/JobFeedbacks.cshtml", feedbacks);
@@ -115,7 +137,7 @@ namespace DotnetMVCApp.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Candidate")]
-        public IActionResult Create(FeedbackViewModel model)
+        public async Task<IActionResult> Create(FeedbackViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -138,12 +160,39 @@ namespace DotnetMVCApp.Controllers
             // Upload feedback to Cloudinary
             string url = UploadFeedbackToCloudinary(model.FeedbackText, $"feedback_user{userId}_job{model.JobId}");
 
+            // ✅ Call FastAPI for sentiment scoring
+            int? sentimentScore = null;
+            try
+            {
+                using var httpClient = new HttpClient();
+                var requestData = new { feedback = model.FeedbackText };
+                var json = System.Text.Json.JsonSerializer.Serialize(requestData);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await httpClient.PostAsync("http://localhost:8000/analyze-feedback/", content);
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseString = await response.Content.ReadAsStringAsync();
+                    var result = System.Text.Json.JsonDocument.Parse(responseString);
+                    sentimentScore = result.RootElement.GetProperty("sentiment_score").GetInt32();
+                    Console.WriteLine($"[Create] Sentiment score from FastAPI: {sentimentScore}");
+                }
+                else
+                {
+                    Console.WriteLine($"[Create] FastAPI call failed: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Create] Error calling FastAPI: {ex.Message}");
+            }
+
             var feedback = new Feedback
             {
                 JobId = model.JobId,
                 UserId = userId,
                 FeedbackUrl = url,
-                Sentiment = null
+                Sentiment = sentimentScore // store sentiment/score in DB
             };
 
             _feedbackRepo.Add(feedback);

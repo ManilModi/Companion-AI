@@ -4,9 +4,9 @@
     ViewData["Title"] = "Job Feedbacks";
 
     int userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
-    var userFeedback = Model.FirstOrDefault(f => f.UserId == userId);
-    string jobTitle = ViewBag.JobTitle as string;
-    int jobId = Convert.ToInt32(ViewBag.JobId);
+    var userFeedback = Model?.FirstOrDefault(f => f.UserId == userId);
+    string jobTitle = ViewBag.JobTitle as string ?? "[Unknown Job]";
+    int jobId = ViewBag.JobId != null ? Convert.ToInt32(ViewBag.JobId) : 0;
 }
 
 <h2 class="text-2xl font-bold mb-6 text-white text-center">📝 Feedbacks for Job: @jobTitle</h2>
@@ -53,6 +53,23 @@
 }
 else
 {
+    @if (ViewBag.AvgSentimentPercent != null)
+    {
+        <div class="text-center mb-6">
+            <p class="text-lg font-semibold text-green-400">
+                🌟 Average Sentiment Score: @(((double)ViewBag.AvgSentimentPercent).ToString("F2"))%
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="text-center mb-6">
+            <p class="text-lg font-semibold text-gray-400">
+                📊 Sentiment analysis is still in progress...
+            </p>
+        </div>
+    }
+
     <div class="space-y-4 text-gray-100">
         @foreach (var feedback in Model)
         {
@@ -74,6 +91,12 @@ else
                     </div>
                 </div>
             </div>
+            // @if (feedback.Sentiment.HasValue)
+            // {
+            //     <p class="text-sm mt-3 text-yellow-400">
+            //         🧠 Sentiment Score: @(feedback.Sentiment.Value.ToString("P2"))
+            //     </p>
+            // }
         }
     </div>
 }

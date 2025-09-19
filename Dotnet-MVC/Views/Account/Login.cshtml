@@ -17,24 +17,27 @@
         }
 
         <form asp-action="Login" method="post" class="space-y-5">
-            <div asp-validation-summary="All" class="text-red-400 text-sm mb-2"></div>
-
+            <!-- Email -->
             <div>
                 <label asp-for="Email" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="Email" type="email"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                       class="mt-1 w-full px-4 py-2 border rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none
+                              @(ViewData.ModelState["Email"]?.Errors.Count > 0 ? "border-red-500" : "border-gray-600")"
                        placeholder="Enter your email" />
                 <span asp-validation-for="Email" class="text-red-400 text-sm"></span>
             </div>
 
+            <!-- Password -->
             <div>
                 <label asp-for="Password" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="Password" type="password"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                       class="mt-1 w-full px-4 py-2 border rounded-xl bg-gray-700 text-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none
+                              @(ViewData.ModelState["Password"]?.Errors.Count > 0 ? "border-red-500" : "border-gray-600")"
                        placeholder="Enter your password" />
                 <span asp-validation-for="Password" class="text-red-400 text-sm"></span>
             </div>
 
+            <!-- Remember Me / Forgot Password -->
             <div class="flex items-center justify-between">
                 <label class="flex items-center space-x-2">
                     <input asp-for="RememberMe" type="checkbox"
@@ -44,9 +47,9 @@
                 <a asp-action="ForgotPassword" asp-controller="Account" class="text-sm font-medium text-indigo-400 hover:underline">
                     Forgot password?
                 </a>
-
             </div>
 
+            <!-- Submit Button -->
             <button type="submit"
                     class="w-full bg-indigo-600 text-white py-2 rounded-xl shadow-md hover:bg-indigo-700 transition">
                 Login

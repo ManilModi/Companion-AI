@@ -9,47 +9,58 @@
         <h2 class="text-2xl font-bold text-center text-white mb-6">Create an Account 🚀</h2>
 
         <form asp-action="Register" method="post" class="space-y-5">
+
+            <!-- Username -->
             <div>
                 <label asp-for="Username" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="Username"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
-                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
+                       class="mt-1 w-full px-4 py-2 border rounded-xl bg-gray-700 text-white shadow-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400
+                              @(ViewData.ModelState["Username"]?.Errors.Count > 0 ? "border-red-500" : "border-gray-600")"
                        placeholder="Choose a username" />
                 <span asp-validation-for="Username" class="text-red-400 text-sm"></span>
             </div>
 
+            <!-- Email -->
             <div>
                 <label asp-for="Email" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="Email" type="email"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
-                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
+                       class="mt-1 w-full px-4 py-2 border rounded-xl bg-gray-700 text-white shadow-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400
+                              @(ViewData.ModelState["Email"]?.Errors.Count > 0 ? "border-red-500" : "border-gray-600")"
                        placeholder="Enter your email" />
                 <span asp-validation-for="Email" class="text-red-400 text-sm"></span>
             </div>
 
+            <!-- Password -->
             <div>
                 <label asp-for="Password" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="Password" type="password"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
-                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
+                       class="mt-1 w-full px-4 py-2 border rounded-xl bg-gray-700 text-white shadow-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400
+                              @(ViewData.ModelState["Password"]?.Errors.Count > 0 ? "border-red-500" : "border-gray-600")"
                        placeholder="Create a password" />
                 <span asp-validation-for="Password" class="text-red-400 text-sm"></span>
             </div>
 
+            <!-- Confirm Password -->
             <div>
                 <label asp-for="ConfirmPassword" class="block text-sm font-medium text-gray-300"></label>
                 <input asp-for="ConfirmPassword" type="password"
-                       class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
-                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400"
+                       class="mt-1 w-full px-4 py-2 border rounded-xl bg-gray-700 text-white shadow-sm
+                              focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400
+                              @(ViewData.ModelState["ConfirmPassword"]?.Errors.Count > 0 ? "border-red-500" : "border-gray-600")"
                        placeholder="Re-enter your password" />
                 <span asp-validation-for="ConfirmPassword" class="text-red-400 text-sm"></span>
             </div>
 
+            <!-- Role -->
             <div>
                 <label asp-for="Role" class="block text-sm font-medium text-gray-300"></label>
                 <select asp-for="Role"
-                        class="mt-1 w-full px-4 py-2 border border-gray-600 rounded-xl bg-gray-700 text-white shadow-sm
-                               focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        class="mt-1 w-full px-4 py-2 border rounded-xl bg-gray-700 text-white shadow-sm
+                               focus:ring-2 focus:ring-indigo-500 focus:outline-none
+                               @(ViewData.ModelState["Role"]?.Errors.Count > 0 ? "border-red-500" : "border-gray-600")">
                     <option value="">-- Select Role --</option>
                     <option value="HR">HR</option>
                     <option value="Candidate">Candidate</option>
@@ -57,6 +68,7 @@
                 <span asp-validation-for="Role" class="text-red-400 text-sm"></span>
             </div>
 
+            <!-- Submit -->
             <button type="submit"
                     class="w-full bg-indigo-600 text-white py-2 rounded-xl shadow-md hover:bg-indigo-700 transition">
                 Register
@@ -69,3 +81,7 @@
         </p>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

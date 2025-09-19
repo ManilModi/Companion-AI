@@ -77,13 +77,13 @@ namespace DotnetMVCApp.Controllers
 
             if (_userRepo.GetUserByEmail(model.Email) != null)
             {
-                ModelState.AddModelError("", "Email already registered");
+                ModelState.AddModelError(nameof(model.Email), "Email already registered");
                 return View(model);
             }
 
             if (!IsValidEmail(model.Email))
             {
-                ModelState.AddModelError("", "Invalid or non-existent email domain.");
+                ModelState.AddModelError(nameof(model.Email), "Invalid or non-existent email domain.");
                 return View(model);
             }
 
@@ -226,9 +226,18 @@ namespace DotnetMVCApp.Controllers
             if (!ModelState.IsValid) return View(model);
 
             var user = _userRepo.GetUserByEmail(model.Email);
-            if (user == null || HashPassword(model.Password, user.Salt) != user.Password)
+            if (user == null)
             {
-                ModelState.AddModelError("", "Invalid email or password");
+                // Email not found
+                ModelState.AddModelError(nameof(model.Email), "Email not found");
+                return View(model);
+            }
+
+            if (HashPassword(model.Password, user.Salt) != user.Password)
+            {
+                // Password incorrect
+                ModelState.AddModelError(nameof(model.Password), "Incorrect password");
+                model.Password = "";
                 return View(model);
             }
 

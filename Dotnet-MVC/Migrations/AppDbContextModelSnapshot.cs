@@ -36,8 +36,8 @@ namespace DotnetMVCApp.Migrations
                     b.Property<int>("JobId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Sentiment")
-                        .HasColumnType("text");
+                    b.Property<int?>("Sentiment")
+                        .HasColumnType("integer");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");

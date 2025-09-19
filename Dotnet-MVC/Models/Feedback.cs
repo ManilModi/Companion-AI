@@ -16,7 +16,7 @@ namespace DotnetMVCApp.Models
 
         // Store Cloudinary URL instead of full text
         public string? FeedbackUrl { get; set; }
-        public string? Sentiment { get; set; }
+        public int? Sentiment { get; set; }
     }
 }
 

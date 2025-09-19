@@ -14,6 +14,8 @@ namespace DotnetMVCApp.ViewModels.Feedback
 
         [Required(ErrorMessage = "Feedback text is required.")]
         public string FeedbackText { get; set; }
+
+        public int? Sentiment { get; set; }
     }
 
 

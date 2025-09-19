@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DotnetMVCApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250915143118_FeedbackModelModification")]
-    partial class FeedbackModelModification
+    [Migration("20250919172257_FeedbackModified")]
+    partial class FeedbackModified
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -39,8 +39,8 @@ namespace DotnetMVCApp.Migrations
                     b.Property<int>("JobId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Sentiment")
-                        .HasColumnType("text");
+                    b.Property<int?>("Sentiment")
+                        .HasColumnType("integer");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
