@@ -1,0 +1,49 @@
+{
+    "qa_results": [
+        {
+            "question": "Describe the end-to-end pipeline you would design to fine\u2011tune a pre\u2011trained LLM (e.g., LLaMA) for the quick\u2011service restaurant domain, including data preprocessing, training configuration, validation strategy, and how you would package the model for real\u2011time inference via Dockerized APIs.",
+            "answer": "",
+            "unanswered": true,
+            "evaluation": {
+                "note": "No answer provided. Evaluation skipped.",
+                "score": null
+            },
+            "video_analysis": {
+                "eye_contact_ratio": 0.6,
+                "facial_expression_score": 0.71,
+                "confidence_score": 0.65
+            },
+            "audio_analysis": {
+                "average_energy": 0.0,
+                "pitch_estimate": 93.52,
+                "silence_ratio": 0.85,
+                "speaking_rate_bpm": 378.94
+            }
+        },
+        {
+            "question": "Explain how you would implement observability for a production LLM serving real\u2011time order processing, detailing the metrics you would collect, the integration of tools like Langfuse for tracing prompt\u2011response cycles, and strategies for automated alerting and cost\u2011aware scaling.",
+            "answer": "",
+            "unanswered": true,
+            "evaluation": {
+                "note": "No answer provided. Evaluation skipped.",
+                "score": null
+            },
+            "video_analysis": {
+                "eye_contact_ratio": 0.58,
+                "facial_expression_score": 0.7,
+                "confidence_score": 0.64
+            },
+            "audio_analysis": {
+                "average_energy": 0.0,
+                "pitch_estimate": 137.16,
+                "silence_ratio": 0.85,
+                "speaking_rate_bpm": 247.67
+            }
+        }
+    ],
+    "final_overall": {
+        "video_score": 0.0,
+        "audio_fluency_score": 0.43,
+        "final_score": 0.17
+    }
+}

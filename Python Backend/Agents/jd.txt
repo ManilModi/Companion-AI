@@ -1,0 +1,25 @@
+﻿About the job
+We are seeking a highly skilled AI / LLM Engineer to help advance our Drive Through AI initiatives. This role is central to creating, fine-tuning, and deploying AI models that enhance restaurant ordering, streamline operational workflows, and improve system intelligence. You will collaborate closely with the product managers, ASR specialists, and prompt engineering teams, providing the tools, integrations, and model improvements that make their work more effective. This is an opportunity to apply cutting-edge Large Language Models (LLMs) and natural language processing (NLP) in real-world, high-volume environments, enabling accurate understanding, intelligent responses, and seamless integration with kitchen and point of-sale systems.
+
+Responsibilities:
+
+ LLM & NLP Development: Design, develop, and optimize AI/ML models for real-time, domain-specific applications in the quick-service restaurant (QSR) space
+ Enabling Capabilities: Build and maintain model infrastructure, APIs, and integrations that support prompt engineering and audio processing pipelines
+ Domain Adaptation: Fine-tune and adapt pre-trained LLMs (e.g., GPT, LLaMA, Falcon) for the QSR domain, enabling high accuracy in varied and dynamic contexts
+ Evaluation & Observability: Leverage observability tools such as Langfuse to monitor, evaluate, and troubleshoot model performance in production
+ Real-Time Integration: Work with engineering teams to embed AI models into production-grade systems connected to order management, displays, and kitchen workflows
+ Performance Optimization: Ensure solutions are efficient, scalable, and cost-effective, suitable for high-throughput, continuous operations
+ Continuous Improvement: Stay current with advancements in LLM architectures, retrieval augmented generation (RAG), and generative AI, applying relevant techniques to improve product capabilities
+ Documentation & Compliance: Maintain thorough documentation of model architectures, training data sources, and evaluation metrics to meet SOC 2 and other compliance standards
+
+Requirements
+
+ Bachelor's or Master's degree in Computer Science or related field
+ 5+ years of experience in AI/ML, with strong expertise in NLP, transformer architectures, and deep learning
+ Experience with prompt engineering, model fine-tuning, and evaluation techniques
+ Proficiency in Python and experience with frameworks like PyTorch or TensorFlow
+ Familiarity with the Instructor and interest or experience in migrating to Pydantic for model definition and validation
+ Experience integrating AI models into production systems via containerization (Docker) and APIs
+ Strong problem-solving skills and ability to thrive in a collaborative, fast-paced environment
+ Excellent communication and documentation abilities
+ Ability to work until 5 p.m. ET with a reliable remote work setup
