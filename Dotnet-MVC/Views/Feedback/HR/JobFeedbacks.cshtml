@@ -14,6 +14,23 @@
 }
 else
 {
+    @if (ViewBag.AvgSentimentPercent != null)
+    {
+        <div class="text-center mb-6">
+            <p class="text-lg font-semibold text-green-400">
+                🌟 Average Sentiment Score: @(((double)ViewBag.AvgSentimentPercent).ToString("F2"))%
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="text-center mb-6">
+            <p class="text-lg font-semibold text-gray-400">
+                📊 Sentiment analysis is still in progress...
+            </p>
+        </div>
+    }
+
     <div class="space-y-4 text-gray-100">
         @foreach (var feedback in Model)
         {

@@ -5,7 +5,7 @@
 namespace DotnetMVCApp.Migrations
 {
     /// <inheritdoc />
-    public partial class FeedbackModelModification : Migration
+    public partial class FeedbackModified : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -14,6 +14,14 @@ namespace DotnetMVCApp.Migrations
                 name: "FeedbackText",
                 table: "Feedbacks",
                 newName: "FeedbackUrl");
+
+            migrationBuilder.Sql(
+       @"ALTER TABLE ""Feedbacks"" 
+          ALTER COLUMN ""Sentiment"" TYPE integer 
+          USING CASE 
+              WHEN ""Sentiment"" ~ '^-?[0-9]+$' THEN ""Sentiment""::integer
+              ELSE 0
+          END;");
         }
 
         /// <inheritdoc />
@@ -23,6 +31,15 @@ namespace DotnetMVCApp.Migrations
                 name: "FeedbackUrl",
                 table: "Feedbacks",
                 newName: "FeedbackText");
+
+            migrationBuilder.AlterColumn<string>(
+                name: "Sentiment",
+                table: "Feedbacks",
+                type: "text",
+                nullable: true,
+                oldClrType: typeof(int),
+                oldType: "integer",
+                oldNullable: true);
         }
     }
 }

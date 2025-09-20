@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any
+from Feedback.sentiment import analyze_feedback
 
 from Agents.resume_agent import resume_agent
 from Agents.scoring_agent import scoring_agent
@@ -78,3 +79,18 @@ async def score_resume(input_data: ScoreResumeInput):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Scoring failed: {e}")
+
+# === Sentiment Analysis Endpoint ===
+class SentimentInput(BaseModel):
+    feedback: str
+
+@app.post("/analyze-feedback/")
+async def analyze_feedback_endpoint(input_data: SentimentInput):
+    try:
+        score = analyze_feedback(input_data.feedback)
+        return JSONResponse(content={
+            "feedback": input_data.feedback,
+            "sentiment_score": score
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Sentiment analysis failed: {e}")
