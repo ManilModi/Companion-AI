@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System.Net.Http.Headers;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace DotnetMVCApp.Controllers
 {
@@ -171,71 +172,136 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> JobSearch()
+        public async Task<IActionResult> JobSearch(string query = "", string sortBy = "similarity", string status = "")
         {
             int userId = GetCurrentUserId();
+            var allJobs = _unitOfWork.Jobs.GetAllJobs();
 
-            var jobs = _unitOfWork.Jobs.GetAllJobs();
+            // 1️⃣ Filter by search query
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                allJobs = allJobs.Where(j =>
+                    (j.JobTitle?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (j.Company?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false)
+                ).ToList();
+            }
+
+            // 2️⃣ Filter by status
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var now = DateTime.Now;
+                allJobs = status == "active"
+                    ? allJobs.Where(j => j.CloseTime > now).ToList()
+                    : allJobs.Where(j => j.CloseTime <= now).ToList();
+            }
+
             var appliedJobIds = _unitOfWork.UserJobs.GetJobsByUser(userId)
                                                    .Select(uj => uj.JobId)
                                                    .ToHashSet();
 
-            var model = _mapper.Map<List<JobSearchViewModel>>(jobs);
+            var model = _mapper.Map<List<JobSearchViewModel>>(allJobs);
 
-            using var httpClient = new HttpClient();
-
-            // ✅ Get current user with ExtractedInfo
             var currentUser = _unitOfWork.Users.GetUserById(userId);
             var extractedInfo = currentUser?.ExtractedInfo ?? "{}";
 
+            // 3️⃣ Candidate embedding (once)
+            float[] candidateEmbedding = null;
+            try
+            {
+                var resumeResponse = await _httpClient.PostAsJsonAsync(
+                    "http://localhost:8000/embed",
+                    new { text = extractedInfo }
+                );
+                if (resumeResponse.IsSuccessStatusCode)
+                {
+                    var json = await resumeResponse.Content.ReadFromJsonAsync<EmbedResponse>();
+                    candidateEmbedding = json?.Embedding;
+                }
+            }
+            catch { }
             foreach (var jobVm in model)
             {
+                var jobEntity = allJobs.First(j => j.JobId == jobVm.JobId);
+
                 jobVm.HasApplied = appliedJobIds.Contains(jobVm.JobId);
-                jobVm.Status = jobs.First(j => j.JobId == jobVm.JobId).CloseTime > DateTime.Now ? "active" : "closed";
-                jobVm.ApplicantsCount = jobs.First(j => j.JobId == jobVm.JobId).Applicants?.Count ?? 0;
+                jobVm.Status = jobEntity.CloseTime > DateTime.Now ? "active" : "closed";
+                jobVm.ApplicantsCount = jobEntity.Applicants?.Count ?? 0;
+                jobVm.CandidateResumeJson = extractedInfo;
 
-                var jobEntity = jobs.First(j => j.JobId == jobVm.JobId);
-
-                // ✅ Attach Job Description
+                // Job description text
+                string jobText = "No description provided.";
                 if (!string.IsNullOrEmpty(jobEntity.JobDescription))
                 {
                     try
                     {
-                        var response = await httpClient.GetAsync(jobEntity.JobDescription);
-                        jobVm.Description = response.IsSuccessStatusCode
-                            ? await response.Content.ReadAsStringAsync()
-                            : "Unable to load description.";
+                        var response = await _httpClient.GetAsync(jobEntity.JobDescription);
+                        if (response.IsSuccessStatusCode)
+                            jobText = await response.Content.ReadAsStringAsync();
                     }
-                    catch
-                    {
-                        jobVm.Description = "Error fetching description.";
-                    }
+                    catch { }
                 }
-                else
-                {
-                    jobVm.Description = "No description provided.";
-                }
+                jobVm.Description = jobText;
 
-                // ✅ Attach candidate’s extracted resume info JSON
-                jobVm.CandidateResumeJson = extractedInfo;
-
+                // Feedback
                 var feedback = _unitOfWork.Feedbacks.GetByUserAndJob(userId, jobVm.JobId);
+                jobVm.HasFeedback = feedback != null;
+                jobVm.FeedbackId = feedback?.FeedbackId;
 
-
-                if (feedback != null)
+                // ✅ Similarity using stored embedding
+                if (candidateEmbedding != null && jobEntity.Embedding != null)
                 {
-                    jobVm.HasFeedback = true;
-                    jobVm.FeedbackId = feedback.FeedbackId;
+                    jobVm.Similarity = CosineSimilarity(candidateEmbedding, jobEntity.Embedding);
                 }
                 else
                 {
-                    jobVm.HasFeedback = false;
-                    jobVm.FeedbackId = null;
+                    jobVm.Similarity = 0f;
                 }
             }
 
+            // Sort by similarity (default)
+            model = sortBy switch
+            {
+                "recent" => model.OrderByDescending(j => j.OpenTime).ToList(),
+                "applicants" => model.OrderByDescending(j => j.ApplicantsCount).ToList(),
+                _ => model.OrderByDescending(j => j.Similarity).ToList()
+            };
+
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
         }
+
+        // Embed response class
+        public class EmbedResponse
+        {
+            public float[] Embedding { get; set; }
+        }
+
+        // Cosine similarity helper
+        private float CosineSimilarity(float[] vec1, float[] vec2)
+        {
+            if (vec1.Length != vec2.Length) return 0f;
+
+            float dot = 0f;
+            float normA = 0f;
+            float normB = 0f;
+
+            for (int i = 0; i < vec1.Length; i++)
+            {
+                dot += vec1[i] * vec2[i];
+                normA += vec1[i] * vec1[i];
+                normB += vec2[i] * vec2[i];
+            }
+
+            return (float)(dot / (Math.Sqrt(normA) * Math.Sqrt(normB) + 1e-8));
+        }
+
+        private float[] Normalize(float[] vec)
+        {
+            float norm = (float)Math.Sqrt(vec.Sum(x => x * x));
+            if (norm == 0) return vec;
+            return vec.Select(x => x / norm).ToArray();
+        }
+
+
 
 
         [HttpGet]
@@ -272,5 +338,157 @@ namespace DotnetMVCApp.Controllers
 
             return RedirectToAction("JobSearch");
         }
+
+        [HttpGet]
+        public async Task<IActionResult> SmartJobSearch()
+        {
+            int userId = GetCurrentUserId();
+            var user = _unitOfWork.Users.GetUserById(userId);
+            if (user == null || string.IsNullOrEmpty(user.ExtractedInfo))
+            {
+                TempData["Error"] = "No resume info found. Please upload your resume first.";
+                return RedirectToAction("Dashboard");
+            }
+
+            // 1️⃣ Get candidate text from resume JSON (example: skills + experience summary)
+            var extracted = JObject.Parse(user.ExtractedInfo);
+            var candidateText = string.Join(" ",
+                extracted["skills"]?.ToObject<List<string>>() ?? new List<string>(),
+                extracted["experience"]?.ToString() ?? ""
+            );
+
+            if (string.IsNullOrEmpty(candidateText))
+            {
+                TempData["Error"] = "Cannot extract meaningful info from resume.";
+                return RedirectToAction("Dashboard");
+            }
+
+            // 2️⃣ Call FastAPI /embed to get embedding
+            var response = await _httpClient.PostAsJsonAsync("http://127.0.0.1:8000/embed", new { text = candidateText });
+            if (!response.IsSuccessStatusCode)
+            {
+                TempData["Error"] = "Embedding service failed.";
+                return RedirectToAction("Dashboard");
+            }
+
+            var json = await response.Content.ReadFromJsonAsync<JobRepo.EmbedResponse>();
+            if (json?.Embedding == null || json.Embedding.Length == 0)
+            {
+                TempData["Error"] = "Embedding returned empty vector.";
+                return RedirectToAction("Dashboard");
+            }
+
+            // 3️⃣ Get top matching jobs by cosine similarity
+            var topJobs = await _unitOfWork.Jobs.GetTopJobsByCandidateEmbeddingAsync(json.Embedding);
+
+            // 4️⃣ Map to view model
+            var model = _mapper.Map<List<JobSearchViewModel>>(topJobs);
+
+            return View("~/Views/User/Candidate/SmartJobSearch.cshtml", model);
+        }
+        [HttpPost]
+        public async Task<IActionResult> SearchJobs([FromForm] string query = "")
+        {
+            int userId = GetCurrentUserId();
+            if (userId == 0) return RedirectToAction("Login", "Account");
+
+            var user = _unitOfWork.Users.GetUserById(userId);
+            if (user == null || string.IsNullOrEmpty(user.ExtractedInfo))
+            {
+                TempData["Error"] = "Please upload your resume first.";
+                return RedirectToAction("Dashboard");
+            }
+
+            string extractedInfo = user.ExtractedInfo;
+
+            // Candidate embedding
+            float[] candidateEmbedding = null;
+            try
+            {
+                var embedResponse = await _httpClient.PostAsJsonAsync(
+                    "http://localhost:8000/embed",
+                    new { text = extractedInfo }
+                );
+                if (embedResponse.IsSuccessStatusCode)
+                {
+                    var json = await embedResponse.Content.ReadFromJsonAsync<EmbedResponse>();
+                    candidateEmbedding = json?.Embedding;
+                }
+            }
+            catch { }
+
+            // Query embedding
+            float[] queryEmbedding = null;
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                try
+                {
+                    var response = await _httpClient.PostAsJsonAsync(
+                        "http://localhost:8000/embed",
+                        new { text = query }
+                    );
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadFromJsonAsync<EmbedResponse>();
+                        queryEmbedding = json?.Embedding;
+                    }
+                }
+                catch { }
+            }
+
+            // Fetch all jobs
+            var allJobs = _unitOfWork.Jobs.GetAllJobs();
+            var appliedJobIds = _unitOfWork.UserJobs.GetJobsByUser(userId)
+                                                   .Select(uj => uj.JobId)
+                                                   .ToHashSet();
+            var model = _mapper.Map<List<JobSearchViewModel>>(allJobs);
+
+            bool anyMatch = false;
+
+            foreach (var jobVm in model)
+            {
+                var jobEntity = allJobs.First(j => j.JobId == jobVm.JobId);
+
+                float similarity = 0f;
+
+                if (queryEmbedding != null && jobEntity.Embedding != null)
+                {
+                    similarity = CosineSimilarity(Normalize(queryEmbedding), Normalize(jobEntity.Embedding));
+                }
+
+                // Flag if we have at least one meaningful match
+                if (similarity > 0.01f) anyMatch = true;
+
+                jobVm.Similarity = similarity;
+                jobVm.HasApplied = appliedJobIds.Contains(jobVm.JobId);
+                jobVm.Status = jobEntity.CloseTime > DateTime.Now ? "active" : "closed";
+                jobVm.ApplicantsCount = jobEntity.Applicants?.Count ?? 0;
+                jobVm.Description = jobEntity.JobDescription ?? "No description provided.";
+                jobVm.CandidateResumeJson = extractedInfo;
+            }
+
+            // If no semantic match found, show all jobs with similarity = 0
+            if (!anyMatch)
+            {
+                foreach (var jobVm in model)
+                {
+                    jobVm.Similarity = 0f;
+                }
+            }
+
+            // Sort by similarity (descending)
+            model = model.OrderByDescending(j => j.Similarity).ToList();
+
+            return View("~/Views/User/Candidate/JobSearch.cshtml", model);
+        }
+
+
+        public IActionResult JobMarket()
+        {
+            ViewData["ActivePage"] = "JobMarket";
+            return View("~/Views/User/Candidate/JobMarket.cshtml");
+        }
+
+
     }
 }

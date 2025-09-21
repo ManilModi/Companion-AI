@@ -23,5 +23,7 @@
         // 🔹 Feedback integration
         public bool HasFeedback { get; set; }
         public int? FeedbackId { get; set; }
+
+        public float Similarity { get; set; }
     }
 }

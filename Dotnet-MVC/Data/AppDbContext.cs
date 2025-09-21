@@ -1,6 +1,8 @@
 ﻿using DotnetMVCApp.Models;
 using HiringAssistance.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Text.Json;
 
 namespace DotnetMVCApp.Data
 {
@@ -17,6 +19,18 @@ namespace DotnetMVCApp.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            var floatArrayConverter = new ValueConverter<float[], string>(
+                   v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
+                   v => JsonSerializer.Deserialize<float[]>(v, (JsonSerializerOptions)null)
+               );
+
+            modelBuilder.Entity<Job>()
+                .Property(j => j.Embedding)
+                .HasConversion(floatArrayConverter)
+                .HasColumnType("text");  // store JSON as text
+
+
 
             // Many-to-many: User <-> Job
             modelBuilder.Entity<UserJob>()

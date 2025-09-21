@@ -133,7 +133,7 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateJob(CreateJobViewModel model)
+        public async Task<IActionResult> CreateJob(CreateJobViewModel model)
         {
             if (!ModelState.IsValid)
                 return View("~/Views/User/HR/CreateJob.cshtml", model);
@@ -157,9 +157,19 @@ namespace DotnetMVCApp.Controllers
                 PostedByUserId = GetCurrentHrId()
             };
 
+            // ✅ Compute embedding
+            using var client = new HttpClient();
+            var embedResponse = await client.PostAsJsonAsync("http://127.0.0.1:8000/embed", new { text = model.JobDescription });
+            if (embedResponse.IsSuccessStatusCode)
+            {
+                var json = await embedResponse.Content.ReadFromJsonAsync<JobRepo.EmbedResponse>();
+                job.Embedding = json?.Embedding;
+            }
+
             _jobRepo.Add(job);
             return RedirectToAction("JobListings");
         }
+
 
         [HttpGet]
         public async Task<IActionResult> JobListings()
@@ -354,7 +364,7 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpPost]
-        public IActionResult EditJob(int jobId, CreateJobViewModel model)
+        public async Task<IActionResult> EditJob(int jobId, CreateJobViewModel model)
         {
             if (!ModelState.IsValid)
                 return View("~/Views/User/HR/EditJob.cshtml", model);
@@ -377,8 +387,16 @@ namespace DotnetMVCApp.Controllers
             job.JobType = model.JobType;
             job.SalaryRange = model.SalaryRange;
 
-            _jobRepo.Update(job);
+            // ✅ Compute embedding
+            using var client = new HttpClient();
+            var embedResponse = await client.PostAsJsonAsync("http://127.0.0.1:8000/embed", new { text = model.JobDescription });
+            if (embedResponse.IsSuccessStatusCode)
+            {
+                var json = await embedResponse.Content.ReadFromJsonAsync<JobRepo.EmbedResponse>();
+                job.Embedding = json?.Embedding;
+            }
 
+            _jobRepo.Update(job);
             return RedirectToAction("JobListings");
         }
 

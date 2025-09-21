@@ -9,5 +9,7 @@
         public Job Delete(int id);
         public Job GetJobWithApplicantsAndUsers(int jobId);
 
+        public Task<List<Job>> GetTopJobsByCandidateEmbeddingAsync(float[] candidateEmbedding, int topN = 3);
+
     }
 }

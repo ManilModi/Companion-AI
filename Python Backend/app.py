@@ -5,8 +5,10 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Dict, Any, List
 from Feedback.sentiment import analyze_feedback
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 from Agents.resume_agent import resume_agent
 from Agents.scoring_agent import scoring_agent
@@ -94,3 +96,24 @@ async def analyze_feedback_endpoint(input_data: SentimentInput):
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Sentiment analysis failed: {e}")
+
+
+
+class TextInput(BaseModel):
+    text: str
+
+class EmbeddingResponse(BaseModel):
+    embedding: List[float]
+
+@app.post("/embed", response_model=EmbeddingResponse)
+async def get_embedding(data: TextInput):
+    vector = model.encode(data.text).tolist()
+    return {"embedding": vector}
+
+
+
+@app.get("/charts")
+def get_charts():
+    with open("charts.json", "r") as f:
+        data = json.load(f)
+    return data

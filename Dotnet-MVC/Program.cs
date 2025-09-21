@@ -27,6 +27,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ------------------- AutoMapper -------------------
 builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddHttpClient<JobRepo>();
+
 
 // ------------------- Cloudinary -------------------
 builder.Services.AddSingleton(x =>

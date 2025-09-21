@@ -1,0 +1,189 @@
+﻿@{
+    Layout = "~/Views/Shared/_CandidateLayout.cshtml";
+}
+
+<div class="flex min-h-screen bg-gray-900 text-white">
+    <div class="flex-1 p-8">
+        <!-- Page Title -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">Job Market Insights</h1>
+        </div>
+
+        <!-- Overview Cards -->
+        <div id="overviewCards" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Filled dynamically via JS -->
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            <div class="bg-gray-800 rounded-2xl p-4">
+                <h3 class="text-lg font-semibold mb-2">Top Skills in Demand</h3>
+                <div id="skillsChart" class="w-full min-h-[300px] md:min-h-[400px]"></div>
+            </div>
+
+            <div class="bg-gray-800 rounded-2xl p-4">
+                <h3 class="text-lg font-semibold mb-2">Salary Range Distribution</h3>
+                <div id="salaryChart" class="w-full min-h-[300px] md:min-h-[400px]"></div>
+            </div>
+
+            <div class="bg-gray-800 rounded-2xl p-4">
+                <h3 class="text-lg font-semibold mb-2">Jobs by Location</h3>
+                <div id="locationChart" class="w-full min-h-[300px] md:min-h-[400px]"></div>
+            </div>
+
+            <div class="bg-gray-800 rounded-2xl p-4">
+                <h3 class="text-lg font-semibold mb-2">Salary vs AI Adoption Level</h3>
+                <div id="salaryAIChart" class="w-full min-h-[300px] md:min-h-[400px]"></div>
+            </div>
+
+            <div class="bg-gray-800 rounded-2xl p-4">
+                <h3 class="text-lg font-semibold mb-2">Remote-Friendly Jobs vs Industry</h3>
+                <div id="remoteIndustryChart" class="w-full min-h-[300px] md:min-h-[400px]"></div>
+            </div>
+
+            <div class="bg-gray-800 rounded-2xl p-4">
+                <h3 class="text-lg font-semibold mb-2">Industry vs Automation Risk</h3>
+                <div id="industryAutomationChart" class="w-full min-h-[300px] md:min-h-[400px]"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <script>
+        Papa.parse("/data/ai_job_market_insights.csv", {
+            download: true,
+            header: true,
+            complete: function(results) {
+                const data = results.data;
+
+                // === Overview Stats ===
+                const totalJobs = data.length;
+
+                const skillCounts = {};
+                data.forEach(r => { if(r.Required_Skills) skillCounts[r.Required_Skills] = (skillCounts[r.Required_Skills]||0)+1; });
+                const topSkill = Object.keys(skillCounts).reduce((a,b)=>skillCounts[a]>skillCounts[b]?a:b,"N/A");
+
+                const salaries = data.map(r=>parseFloat(r.Salary_USD)).filter(s=>!isNaN(s));
+                const avgSalary = salaries.length ? (salaries.reduce((a,b)=>a+b,0)/salaries.length).toFixed(2) : 0;
+
+                document.getElementById("overviewCards").innerHTML = `
+                    <div class="bg-gray-800 rounded-2xl p-6 text-center">
+                        <h2 class="text-lg font-semibold mb-2">Total Jobs</h2>
+                        <p class="text-3xl font-bold text-indigo-400">${totalJobs}</p>
+                    </div>
+                    <div class="bg-gray-800 rounded-2xl p-6 text-center">
+                        <h2 class="text-lg font-semibold mb-2">Top Skill</h2>
+                        <p class="text-xl font-semibold text-green-400">${topSkill}</p>
+                    </div>
+                    <div class="bg-gray-800 rounded-2xl p-6 text-center">
+                        <h2 class="text-lg font-semibold mb-2">Avg. Salary</h2>
+                        <p class="text-xl font-semibold text-yellow-400">$${avgSalary}</p>
+                    </div>
+                `;
+
+                // === Top Skills Chart ===
+                Plotly.newPlot('skillsChart', [{
+                    x: Object.keys(skillCounts),
+                    y: Object.values(skillCounts),
+                    type: 'bar',
+                    marker: { color: 'rgba(99,102,241,0.7)' }
+                }], { paper_bgcolor:'#1f2937', plot_bgcolor:'#1f2937', font:{color:'white'} });
+
+                // === Salary Histogram ===
+                Plotly.newPlot('salaryChart', [{
+                    x: salaries,
+                    type: 'histogram',
+                    marker: { color: 'rgba(234,179,8,0.7)' }
+                }], { paper_bgcolor:'#1f2937', plot_bgcolor:'#1f2937', font:{color:'white'} });
+
+                // === Jobs by Location ===
+                const locationCounts = {};
+                data.forEach(r=>{ if(r.Location) locationCounts[r.Location]=(locationCounts[r.Location]||0)+1; });
+                Plotly.newPlot('locationChart', [{
+                    labels: Object.keys(locationCounts),
+                    values: Object.values(locationCounts),
+                    type: 'pie'
+                }], { paper_bgcolor:'#1f2937', font:{color:'white'} });
+
+                // === Salary vs AI Adoption Level ===
+                const salaryVsAI = {};
+                data.forEach(r => {
+                    const lvl = r.AI_Adoption_Level || "Unknown";
+                    const sal = parseFloat(r.Salary_USD);
+                    if(!isNaN(sal)) {
+                        if(!salaryVsAI[lvl]) salaryVsAI[lvl]=[];
+                        salaryVsAI[lvl].push(sal);
+                    }
+                });
+                const aiLabels = Object.keys(salaryVsAI);
+                const aiAvgSalaries = aiLabels.map(lvl => {
+                    const arr = salaryVsAI[lvl];
+                    return arr.reduce((a,b)=>a+b,0)/arr.length;
+                });
+                Plotly.newPlot('salaryAIChart', [{
+                    x: aiLabels,
+                    y: aiAvgSalaries,
+                    type: 'bar',
+                    marker: { color: 'rgba(59,130,246,0.7)' }
+                }], { paper_bgcolor:'#1f2937', plot_bgcolor:'#1f2937', font:{color:'white'} });
+
+                // === Remote-Friendly Jobs vs Industry ===
+                const remoteIndustry = {};
+                data.forEach(r => {
+                    const ind = r.Industry || "Other";
+                    const remote = r.Remote_Friendly?.toLowerCase() === "yes" ? "Remote" : "Non-Remote";
+                    if(!remoteIndustry[ind]) remoteIndustry[ind] = { Remote:0, "Non-Remote":0 };
+                    remoteIndustry[ind][remote]++;
+                });
+                const industries = Object.keys(remoteIndustry);
+                const remoteCounts = industries.map(ind => remoteIndustry[ind].Remote);
+                const nonRemoteCounts = industries.map(ind => remoteIndustry[ind]["Non-Remote"]);
+                Plotly.newPlot('remoteIndustryChart', [
+                    { x: industries, y: remoteCounts, name: 'Remote', type:'bar', marker:{color:'rgba(16,185,129,0.7)'} },
+                    { x: industries, y: nonRemoteCounts, name: 'Non-Remote', type:'bar', marker:{color:'rgba(244,63,94,0.7)'} }
+                ], { barmode:'stack', paper_bgcolor:'#1f2937', plot_bgcolor:'#1f2937', font:{color:'white'} });
+
+                        // Map categorical risk to numeric
+        const riskMapping = { "Low": 1, "Medium": 2, "High": 3 };
+
+        // Collect numeric risks per industry
+        const industryRisk = {};
+        data.forEach(r => {
+            const ind = r.Industry || "Other";
+            const riskCat = r.Automation_Risk;
+            const risk = riskMapping[riskCat] || 0; // default 0 if unknown
+            if(risk > 0){
+                if(!industryRisk[ind]) industryRisk[ind] = [];
+                industryRisk[ind].push(risk);
+            }
+        });
+
+        // Compute average risk per industry
+        const industryLabels = Object.keys(industryRisk);
+        const industryAvgRisk = industryLabels.map(ind => {
+            const arr = industryRisk[ind];
+            return arr.reduce((a,b)=>a+b,0)/arr.length;
+        });
+
+        // Plot chart
+        Plotly.newPlot('industryAutomationChart', [{
+            x: industryLabels,
+            y: industryAvgRisk,
+            type: 'bar',
+            marker: { color: 'rgba(251,191,36,0.7)' }
+        }], {
+            paper_bgcolor:'#1f2937',
+            plot_bgcolor:'#1f2937',
+            font:{color:'white'},
+            yaxis: { title: 'Average Automation Risk (1=Low, 3=High)' }
+        });
+
+            }
+        });
+    </script>
+}

@@ -45,6 +45,9 @@ public class Job
     public int PostedByUserId { get; set; }
     public User? PostedBy { get; set; }
 
+    [Column(TypeName = "jsonb")]
+    public float[]? Embedding { get; set; }
+
     public ICollection<Interview>? Interviews { get; set; }
     public ICollection<Feedback>? Feedbacks { get; set; }
 }

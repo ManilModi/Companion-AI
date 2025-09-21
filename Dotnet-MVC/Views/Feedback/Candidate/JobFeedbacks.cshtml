@@ -61,14 +61,7 @@ else
             </p>
         </div>
     }
-    else
-    {
-        <div class="text-center mb-6">
-            <p class="text-lg font-semibold text-gray-400">
-                📊 Sentiment analysis is still in progress...
-            </p>
-        </div>
-    }
+
 
     <div class="space-y-4 text-gray-100">
         @foreach (var feedback in Model)
@@ -91,12 +84,12 @@ else
                     </div>
                 </div>
             </div>
-            // @if (feedback.Sentiment.HasValue)
-            // {
-            //     <p class="text-sm mt-3 text-yellow-400">
-            //         🧠 Sentiment Score: @(feedback.Sentiment.Value.ToString("P2"))
-            //     </p>
-            // }
+            @if (feedback.Sentiment.HasValue)
+            {
+                <p class="text-sm mt-3 text-yellow-400">
+                    🧠 Sentiment Score: @(feedback.Sentiment.Value.ToString("P2"))
+                </p>
+            }
         }
     </div>
 }

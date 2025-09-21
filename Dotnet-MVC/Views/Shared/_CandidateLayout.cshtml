@@ -6,6 +6,7 @@
     <title>Candidate Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-900 text-white">
@@ -58,15 +59,14 @@
                     <i class="fas fa-briefcase mr-2"></i> Job Search
                 </a>
 
-                <a href="#"
-                   class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-700 transition text-gray-300">
+                <a asp-controller="Candidate" asp-action="JobMarket"
+                   class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-700 transition
+          @(ViewData["ActivePage"]?.ToString() == "JobMarket" ? "bg-indigo-600 text-white font-semibold" : "text-gray-300")">
                     <i class="fas fa-chart-line mr-2"></i> Job Insights
                 </a>
 
-                <a href="#"
-                   class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-700 transition text-gray-300">
-                    <i class="fas fa-thumbs-up mr-2"></i> Job Recommendations
-                </a>
+
+                
 
                 <a href="#"
                    class="flex items-center px-4 py-2 rounded-lg hover:bg-gray-700 transition text-gray-300">
