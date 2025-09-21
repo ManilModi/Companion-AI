@@ -69,3 +69,6 @@ resume_history.json
 >>>>>>> ac02c003f01d49e32b0474562b6fe01f5c0d61fc
 
 answers/
+__pycache__/
+/Python Backend/Feedback/__pycache__/sentiment.cpython-310.pyc
+/Python Backend/__pycache__/app.cpython-310.pyc
