@@ -5,13 +5,14 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from Feedback.sentiment import analyze_feedback
 from sentence_transformers import SentenceTransformer
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 from Agents.resume_agent import resume_agent
 from Agents.scoring_agent import scoring_agent
+from Agents.JobSearch_agent import job_search_agent
 
 app = FastAPI(title="Resume + Scoring API", version="1.0")
 
@@ -117,3 +118,39 @@ def get_charts():
     with open("charts.json", "r") as f:
         data = json.load(f)
     return data
+
+class ResumeJobSearchRequest(BaseModel):
+    name: str
+    email: str
+    contact_no: str
+    linkedin_profile_link: Optional[str] = ""
+    skills: List[str]
+    experience: str
+    total_experience_years: float
+    projects_built: List[str]
+    achievements_like_awards_and_certifications: List[str]
+
+
+# --------- 4. FastAPI Models ----------
+class JobItem(BaseModel):
+    title: str
+    link: str
+    snippet: str
+
+class JobSearchResponse(BaseModel):
+    jobs: List[JobItem]
+
+class CustomPromptRequest(BaseModel):
+    custom_prompt: str
+
+
+# --------- 5. Endpoint ----------
+@app.post("/search_jobs", response_model=JobSearchResponse)
+def search_jobs(request: CustomPromptRequest):
+    try:
+        query = request.custom_prompt
+        result = job_search_agent.invoke({"query": query})
+        jobs = result.get("formatted_jobs", [])
+        return {"jobs": jobs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,0 +1,51 @@
+﻿@model DotnetMVCApp.ViewModels.Candidate.JobSearchAIResponse
+@{
+    Layout = "~/Views/Shared/_CandidateLayout.cshtml";
+}
+
+<div class="flex min-h-screen bg-gray-900 text-white">
+    <div class="flex-1 p-8">
+        <!-- Page Title -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">Personalized Career Posts</h1>
+        </div>
+
+        <!-- 🔹 Custom Prompt Search Form -->
+        <form asp-action="ThirdPartyJobs" method="post" class="mb-6 flex gap-2">
+            <input type="text" name="customPrompt" placeholder="Enter your job search prompt..."
+                   class="flex-1 p-2 rounded-md text-black" required />
+            <button type="submit" class="bg-indigo-600 px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+                Search
+            </button>
+        </form>
+
+        @if (Model?.Jobs != null && Model.Jobs.Any())
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                @foreach (var job in Model.Jobs)
+                {
+                    <div class="bg-gray-800 rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+                        <h2 class="text-lg font-semibold">@job.Title</h2>
+                        <p class="text-sm text-gray-400">
+                            @* @(!string.IsNullOrEmpty(job.Company) ? job.Company : "Unknown Company") –
+                            @(!string.IsNullOrEmpty(job.Location) ? job.Location : "Unknown Location") *@
+                        </p>
+                        <p class="mt-3 text-gray-300">@job.Snippet</p>
+                        @if (!string.IsNullOrEmpty(job.Link))
+                        {
+                            <a href="@job.Link" target="_blank" class="text-indigo-400 underline mt-3 inline-block">
+                                View Job
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-gray-400">
+                No jobs found. Enter a prompt above to search for personalized career opportunities.
+            </p>
+        }
+    </div>
+</div>

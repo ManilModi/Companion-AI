@@ -1,14 +1,16 @@
 ﻿using AutoMapper;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using DotnetMVCApp.Attributes;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
 using DotnetMVCApp.ViewModels.Candidate;
-using DotnetMVCApp.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 
 namespace DotnetMVCApp.Controllers
@@ -488,6 +490,56 @@ namespace DotnetMVCApp.Controllers
             ViewData["ActivePage"] = "JobMarket";
             return View("~/Views/User/Candidate/JobMarket.cshtml");
         }
+
+        [HttpGet]
+        public IActionResult ThirdPartyJobs()
+        {
+            return View("~/Views/User/Candidate/ThirdPartyjobs.cshtml",
+                new JobSearchAIResponse { Jobs = new List<JobSearchAIViewModel>() });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ThirdPartyJobs(string customPrompt)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(customPrompt))
+                {
+                    return View("~/Views/User/Candidate/ThirdPartyjobs.cshtml",
+                        new JobSearchAIResponse { Jobs = new List<JobSearchAIViewModel>() });
+                }
+
+                // Prepare request body for FastAPI
+                var requestObj = new { custom_prompt = customPrompt };
+                string requestJson = JsonSerializer.Serialize(requestObj);
+
+                using var httpContent = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+                // ✅ Call FastAPI POST /search_jobs
+                var response = await _httpClient.PostAsync("http://127.0.0.1:8000/search_jobs", httpContent);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return View("~/Views/User/Candidate/ThirdPartyjobs.cshtml",
+                        new JobSearchAIResponse { Jobs = new List<JobSearchAIViewModel>() });
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+
+                var jobs = JsonSerializer.Deserialize<JobSearchAIResponse>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return View("~/Views/User/Candidate/ThirdPartyjobs.cshtml", jobs);
+            }
+            catch (Exception)
+            {
+                return View("~/Views/User/Candidate/ThirdPartyjobs.cshtml",
+                    new JobSearchAIResponse { Jobs = new List<JobSearchAIViewModel>() });
+            }
+        }
+
 
 
     }
