@@ -540,6 +540,45 @@ namespace DotnetMVCApp.Controllers
             }
         }
 
+        [HttpGet]
+        public IActionResult MockInterview()
+        {
+            return View("~/Views/User/Candidate/MockInterview.cshtml");
+        }
+
+        //[HttpPost]
+        //public async Task<IActionResult> MockInterview(string jobDesc)
+        //{
+        //    if (string.IsNullOrWhiteSpace(jobDesc))
+        //    {
+        //        TempData["Error"] = "Please provide a job description.";
+        //        return RedirectToAction("MockInterview");
+        //    }
+
+        //    try
+        //    {
+        //        var requestObj = new { job_desc = jobDesc };
+        //        var response = await _httpClient.PostAsJsonAsync("http://127.0.0.1:8000/mock-interview", requestObj);
+
+        //        if (!response.IsSuccessStatusCode)
+        //        {
+        //            TempData["Error"] = "Mock interview service failed.";
+        //            return RedirectToAction("MockInterview");
+        //        }
+
+        //        var json = await response.Content.ReadAsStringAsync();
+        //        var qaList = JsonSerializer.Deserialize<List<MockInterviewQA>>(json,
+        //            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        //        return View("~/Views/User/Candidate/MockInterview.cshtml", qaList);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        TempData["Error"] = "Error: " + ex.Message;
+        //        return RedirectToAction("MockInterview");
+        //    }
+        //}
+
 
 
     }

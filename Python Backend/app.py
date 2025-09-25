@@ -1,7 +1,7 @@
 import os
 import shutil
 import json
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -13,6 +13,7 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 from Agents.resume_agent import resume_agent
 from Agents.scoring_agent import scoring_agent
 from Agents.JobSearch_agent import job_search_agent
+from Agents.mock_interview import run_mock_interview
 
 app = FastAPI(title="Resume + Scoring API", version="1.0")
 
@@ -154,3 +155,17 @@ def search_jobs(request: CustomPromptRequest):
         return {"jobs": jobs}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/start_interview/")
+async def start_interview(job_description: str = Form(...)):
+    """
+    Start a mock interview with a given job description.
+    Returns JSON with questions, answers, video/audio analysis, and final scores.
+    """
+    try:
+        # Run the interview flow using the provided job description
+        results = run_mock_interview(job_description=job_description)
+        return JSONResponse(content={"status": "success", "results": results})
+    except Exception as e:
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
