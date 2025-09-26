@@ -19,6 +19,7 @@ namespace DotnetMVCApp.Controllers
     public class CandidateController : Controller
     {
         private readonly IUserRepo _userRepo;
+        private readonly IInterviewrepo _interviewrepo;
         private readonly Cloudinary _cloudinary;
         private readonly HttpClient _httpClient;
         private readonly IUnitOfWork _unitOfWork;
@@ -26,12 +27,14 @@ namespace DotnetMVCApp.Controllers
 
         public CandidateController(
             IUserRepo userRepo,
+            IInterviewrepo interviewrepo,
             IUnitOfWork unitOfWork,
             Cloudinary cloudinary,
             IHttpClientFactory httpClientFactory,
             IMapper mapper)
         {
             _userRepo = userRepo;
+            _interviewrepo = interviewrepo;
             _unitOfWork = unitOfWork;
             _cloudinary = cloudinary;
             _httpClient = httpClientFactory.CreateClient();
@@ -388,6 +391,7 @@ namespace DotnetMVCApp.Controllers
 
             return View("~/Views/User/Candidate/SmartJobSearch.cshtml", model);
         }
+
         [HttpPost]
         public async Task<IActionResult> SearchJobs([FromForm] string query = "")
         {
@@ -541,43 +545,106 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult MockInterview()
+        public async Task<IActionResult> MockInterview(int id)
         {
-            return View("~/Views/User/Candidate/MockInterview.cshtml");
+            try
+            {
+                int userId = GetCurrentUserId();
+
+                var user = _unitOfWork.Users.GetUserById(userId);
+                if (user == null)
+                {
+                    TempData["Error"] = "User not found.";
+                    return RedirectToAction("Dashboard");
+                }
+
+                var job = _unitOfWork.Jobs.GetJobById(id);
+                if (job == null || string.IsNullOrWhiteSpace(job.JobDescription))
+                {
+                    TempData["Error"] = "No job description found for this job.";
+                    return RedirectToAction("Dashboard");
+                }
+
+                var hasApplied = _unitOfWork.UserJobs.HasApplied(userId, id);
+                if (!hasApplied)
+                {
+                    TempData["Error"] = "You must apply for this job before attempting a mock interview.";
+                    return RedirectToAction("JobSearch");
+                }
+
+                string jobDescription;
+                using (var httpClient = new HttpClient())
+                {
+                    var response = await httpClient.GetAsync(job.JobDescription);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        TempData["Error"] = "Failed to load job description.";
+                        return RedirectToAction("Dashboard");
+                    }
+
+                    jobDescription = await response.Content.ReadAsStringAsync();
+                }
+
+                var viewModel = new MockInterviewViewModel
+                {
+                    JobId = id,
+                    JobDescription = jobDescription
+                    // 🚫 No ScoreJson here – always start fresh
+                };
+
+                return View("~/Views/User/Candidate/MockInterview.cshtml", viewModel);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error loading mock interview: " + ex.Message;
+                return RedirectToAction("Dashboard");
+            }
         }
 
-        //[HttpPost]
-        //public async Task<IActionResult> MockInterview(string jobDesc)
-        //{
-        //    if (string.IsNullOrWhiteSpace(jobDesc))
-        //    {
-        //        TempData["Error"] = "Please provide a job description.";
-        //        return RedirectToAction("MockInterview");
-        //    }
 
-        //    try
-        //    {
-        //        var requestObj = new { job_desc = jobDesc };
-        //        var response = await _httpClient.PostAsJsonAsync("http://127.0.0.1:8000/mock-interview", requestObj);
 
-        //        if (!response.IsSuccessStatusCode)
-        //        {
-        //            TempData["Error"] = "Mock interview service failed.";
-        //            return RedirectToAction("MockInterview");
-        //        }
+        [HttpPost]
+        public async Task<IActionResult> SaveInterviewResult([FromBody] MockInterviewViewModel model)
+        {
+            try
+            {
+                int userId = GetCurrentUserId();
 
-        //        var json = await response.Content.ReadAsStringAsync();
-        //        var qaList = JsonSerializer.Deserialize<List<MockInterviewQA>>(json,
-        //            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var interview = new Interview
+                {
+                    UserId = userId,
+                    JobId = model.JobId,
+                    Score = model.ScoreJson,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-        //        return View("~/Views/User/Candidate/MockInterview.cshtml", qaList);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        TempData["Error"] = "Error: " + ex.Message;
-        //        return RedirectToAction("MockInterview");
-        //    }
-        //}
+                _interviewrepo.Add(interview);
+
+                return Ok(new { message = "Interview saved", interviewId = interview.InterviewId });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public IActionResult MockInterviewHistory()
+        {
+            int userId = GetCurrentUserId();
+            var interviews = _interviewrepo.GetByUser(userId);
+
+            var model = interviews.Select(i => new MockInterviewHistoryViewModel
+            {
+                InterviewId = i.InterviewId,
+                JobId = i.JobId,
+                JobTitle = i.Job?.JobTitle ?? "Unknown Job",
+                Score = i.Score,
+                CreatedAt = i.CreatedAt
+            }).ToList();
+
+            return View("~/Views/User/Candidate/MockInterviewHistory.cshtml", model);
+        }
 
 
 

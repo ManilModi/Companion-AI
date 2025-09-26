@@ -8,5 +8,6 @@
         public Interview Update(Interview interview);
         public Interview Delete(int id);
 
+        public IEnumerable<Interview> GetByUser(int userId);
     }
 }

@@ -1,0 +1,180 @@
+﻿@model DotnetMVCApp.ViewModels.Candidate.MockInterviewViewModel
+
+@{
+    ViewData["Title"] = "Mock Interview";
+    Layout = "~/Views/Shared/_CandidateLayout.cshtml";
+}
+
+<div class="min-h-screen bg-gray-900 text-white p-6">
+    <h1 class="text-3xl font-bold mb-6">Mock Interview</h1>
+
+    <!-- ✅ Job Description -->
+    <div id="jobDescriptionContainer" class="mb-6">
+        <h2 class="text-xl font-semibold">Job Description</h2>
+        <p class="mt-2 text-gray-300">@Model.JobDescription</p>
+    </div>
+
+    <!-- ✅ Start/Stop Button -->
+    <button id="startInterviewBtn"
+            data-jobid="@Model.JobId"
+            class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+        Start Interview
+    </button>
+
+    <!-- ✅ AI HR Avatar + Tips Section -->
+    <div id="videoSection"
+         class="mt-6 hidden flex flex-col lg:flex-row gap-6 p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
+        <!-- 🤖 AI HR Avatar -->
+        <div id="aiHrContainer" class="flex-1 text-center">
+            <h2 class="text-xl font-semibold mb-4">AI HR Interviewer</h2>
+            <div class="flex justify-center">
+                <img src="~/images/ai-hr.png"
+                     alt="AI HR Avatar"
+                     class="rounded-full w-48 h-48 border-4 border-blue-600 shadow-lg animate-pulse" />
+            </div>
+            <p class="mt-4 text-gray-300">
+                I am your AI HR Assistant.
+            </p>
+        </div>
+
+        <!-- 📝 Interview Tips -->
+        <div class="flex-1 bg-gray-900 p-4 rounded-lg shadow-lg border border-gray-700">
+            <h2 class="text-xl font-semibold mb-4">Things to Keep in Mind</h2>
+            <ul class="list-disc list-inside text-gray-300 space-y-2">
+                <li>Stay in a stable and strong network connection.</li>
+                <li>Give your full focus during the interview.</li>
+                <li>Be infront of the camera during the interview for good analysis.</li>
+                <li>Stay in a quiet and undisturbed environment.</li>
+                <li>If you stay quiet for too long, the next question will be asked automatically.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ✅ Q&A container -->
+    <div id="interviewContainer" class="mt-6 space-y-4 hidden"></div>
+
+    <!-- ✅ Results container -->
+    <div id="resultsContainer" class="mt-8 hidden bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
+        <h2 class="text-2xl font-bold mb-4 text-green-400">Final Evaluation Results</h2>
+        <div id="resultsContent" class="space-y-3 text-gray-300"></div>
+        <p id="saveMessage" class="mt-4 text-sm"></p>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const startBtn = document.getElementById("startInterviewBtn");
+        const jobDescContainer = document.getElementById("jobDescriptionContainer");
+        const videoSection = document.getElementById("videoSection");
+        const container = document.getElementById("interviewContainer");
+        const resultsContainer = document.getElementById("resultsContainer");
+        const resultsContent = document.getElementById("resultsContent");
+        const saveMessage = document.getElementById("saveMessage");
+
+        async function startInterview() {
+            // Hide job description
+            jobDescContainer.classList.add("hidden");
+
+            // Change button to "Interview Started"
+            startBtn.textContent = "Interview Started";
+            startBtn.classList.remove("bg-blue-600", "hover:bg-blue-700");
+            startBtn.classList.add("bg-red-600", "hover:bg-red-700");
+
+            container.innerHTML = "<p class='text-gray-400'>Generating questions...</p>";
+            container.classList.remove("hidden");
+            resultsContainer.classList.add("hidden"); // hide old results
+            saveMessage.textContent = "";
+
+            // Show AI HR section
+            videoSection.classList.remove("hidden");
+
+            const jobId = startBtn.getAttribute("data-jobid");
+            const jobDesc = @Html.Raw(Json.Serialize(Model.JobDescription));
+
+            try {
+                const jobId = parseInt(startBtn.getAttribute("data-jobid"), 10); // ensure it's an integer
+                const jobDesc = @Html.Raw(Json.Serialize(Model.JobDescription)); // already a string
+
+                const response = await fetch("http://localhost:8000/start_interview/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        job_id: jobId,       // use snake_case
+                        job_desc: jobDesc    // include job description
+                    })
+                });
+
+
+
+                if (!response.ok) throw new Error("Failed to fetch interview.");
+
+                const data = await response.json();
+                container.innerHTML = "";
+
+                // Render Q&A if present
+                // if (data.results) {
+                //     (data.results || []).forEach(item => {
+                //         const div = document.createElement("div");
+                //         div.className = "p-4 rounded-lg bg-gray-900 shadow";
+                //         div.innerHTML = `
+                //             <h3 class="text-lg font-semibold text-blue-400">🤖 ${item.Question}</h3>
+                //             <p class="mt-2 text-gray-300"><strong>Model Answer:</strong> ${item.Model_Answer}</p>
+                //         `;
+                //         container.appendChild(div);
+                //     });
+                // }
+
+                // Show final evaluation + save results
+                if (data.final_overall) {
+                    resultsContent.innerHTML = `
+                        <p><strong>Similarity Score:</strong> ${data.final_overall.similarity_score ?? "N/A"}</p>
+                        <p><strong>Audio/Video Score:</strong> ${data.final_overall.audio_video_score ?? "N/A"}</p>
+                        <p class="text-xl"><strong>Final Score:</strong> ${data.final_overall.final_score ?? "N/A"}</p>
+                    `;
+                    resultsContainer.classList.remove("hidden");
+
+                    // ✅ Save interview result
+                    try {
+                        const saveResponse = await fetch("/Candidate/SaveInterviewResult", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                jobId: jobId,
+                                scoreJson: JSON.stringify(data.final_overall)
+                            })
+                        });
+
+                        const saveData = await saveResponse.json();
+                        if (!saveResponse.ok) throw new Error(saveData.error || "Failed to save result");
+
+                        saveMessage.textContent = "✅ Interview saved successfully (ID: " + saveData.interviewId + ")";
+                        saveMessage.className = "text-green-400";
+                    } catch (saveErr) {
+                        saveMessage.textContent = "❌ Error saving interview: " + saveErr.message;
+                        saveMessage.className = "text-red-400";
+                    }
+                }
+
+                // ✅ Interview finished → reset button
+                startBtn.textContent = "Start Interview";
+                startBtn.classList.remove("bg-red-600", "hover:bg-red-700");
+                startBtn.classList.add("bg-blue-600", "hover:bg-blue-700");
+
+                // ✅ Show job description again
+                jobDescContainer.classList.remove("hidden");
+
+            } catch (err) {
+                container.innerHTML = "<p class='text-red-400'>Error: " + err.message + "</p>";
+
+                // Reset button in case of error
+                startBtn.textContent = "Start Interview";
+                startBtn.classList.remove("bg-red-600", "hover:bg-red-700");
+                startBtn.classList.add("bg-blue-600", "hover:bg-blue-700");
+
+                jobDescContainer.classList.remove("hidden");
+            }
+        }
+
+        startBtn.addEventListener("click", startInterview);
+    </script>
+}
