@@ -32,9 +32,9 @@
                 <!-- Candidate badge -->
                 <span class="px-3 py-1 rounded-full text-sm bg-green-700 text-white">Candidate</span>
 
-                <form asp-controller="Account" asp-action="Logout" method="post" class="inline">
+                <form asp-controller="Account" asp-action="Logout" method="post" class="inline" id="logoutForm">
                     @Html.AntiForgeryToken()
-                    <button type="submit"
+                    <button type="button" id="logoutBtn"
                             class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition">
                         <i class="fas fa-sign-out-alt mr-1"></i> Logout
                     </button>
@@ -42,6 +42,18 @@
             </div>
         </div>
     </header>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-xl max-w-sm w-full text-center">
+            <h3 class="text-lg font-semibold text-white mb-4">Confirm Logout</h3>
+            <p class="text-gray-300 mb-6">Are you sure you want to logout?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirmLogout" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white font-medium">Yes</button>
+                <button id="cancelLogout" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-white font-medium">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <div class="flex pt-16 min-h-screen">
         <!-- Sidebar -->
@@ -85,5 +97,27 @@
         </main>
     </div>
 
+    <script>
+        // Logout modal logic
+        const logoutBtn = document.getElementById("logoutBtn");
+        const logoutModal = document.getElementById("logoutModal");
+        const cancelLogout = document.getElementById("cancelLogout");
+        const confirmLogout = document.getElementById("confirmLogout");
+        const logoutForm = document.getElementById("logoutForm");
+
+        logoutBtn.addEventListener("click", () => {
+            logoutModal.classList.remove("hidden");
+            logoutModal.classList.add("flex");
+        });
+
+        cancelLogout.addEventListener("click", () => {
+            logoutModal.classList.add("hidden");
+            logoutModal.classList.remove("flex");
+        });
+
+        confirmLogout.addEventListener("click", () => {
+            logoutForm.submit();
+        });
+    </script>
 </body>
 </html>

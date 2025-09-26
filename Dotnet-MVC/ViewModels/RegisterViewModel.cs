@@ -16,7 +16,7 @@ namespace DotnetMVCApp.Models
         [Display(Name = "Email Address")]
         public string Email { get; set; } = string.Empty;
 
-               [Required(ErrorMessage = "Password is required")]
+        [Required(ErrorMessage = "Password is required")]
         [DataType(DataType.Password)]
         [StrongPassword] // custom validation
         [Display(Name = "Password")]

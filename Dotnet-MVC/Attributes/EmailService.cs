@@ -48,16 +48,31 @@ namespace DotnetMVCApp.Attributes
             await smtp.DisconnectAsync(true);
         }
 
-        // Generate and send OTP email
-        public async Task<string> SendOtpEmailAsync(string toEmail)
+        // Verify if email exists (using SMTP VRFY)
+        public async Task<bool> VerifyEmailAsync(string emailToVerify)
         {
-            var otp = new Random().Next(100000, 999999).ToString(); // 6-digit OTP
-            var subject = "Your OTP Code";
-            var body = $"<p>Your OTP code is: <strong>{otp}</strong></p><p>This code will expire in 10 minutes.</p>";
+            try
+            {
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync(_emailSettings.SmtpServer, _emailSettings.Port, MailKit.Security.SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password);
 
-            await SendEmailAsync(toEmail, subject, body);
+                var result = smtp.Verify(emailToVerify); // VRFY command
 
-            return otp; // return OTP for verification logic
+                await smtp.DisconnectAsync(true);
+
+                return result != null; // If server responds with mailbox, return true
+            }
+            catch (MailKit.Net.Smtp.SmtpCommandException ex)
+            {
+                Console.WriteLine($"Verification failed: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                return false;
+            }
         }
     }
 }

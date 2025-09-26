@@ -1,0 +1,29 @@
+﻿@model DotnetMVCApp.ViewModels.ForgotPasswordViewModel
+
+@{
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+    Layout = role == "HR" ? "_HRLayout" : "_CandidateLayout";
+    ViewData["Title"] = "Verify OTP";
+}
+
+<div class="flex min-h-screen items-center justify-center bg-gray-900 p-4">
+    <div class="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-2xl text-center">
+        <h2 class="text-2xl font-bold text-white mb-6">Confirm Password Change</h2>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="mb-4 p-3 text-sm text-red-400 bg-gray-700 border border-red-500 rounded-xl">
+                @TempData["Error"]
+            </div>
+        }
+
+        <form asp-action="VerifyUpdateOtp" method="post" class="space-y-4 text-gray-300">
+            @Html.AntiForgeryToken()
+            <input type="text" name="OTP" maxlength="6" placeholder="Enter OTP"
+                   class="w-full px-4 py-2 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-xl shadow-md hover:bg-indigo-700 transition">
+                Verify OTP
+            </button>
+        </form>
+    </div>
+</div>

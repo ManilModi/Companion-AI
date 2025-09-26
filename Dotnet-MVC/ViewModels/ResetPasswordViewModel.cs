@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using DotnetMVCApp.Attributes;
 
 namespace DotnetMVCApp.ViewModels
 {
@@ -9,6 +10,7 @@ namespace DotnetMVCApp.ViewModels
         public string Email { get; set; }   // ✅ add this
 
         [Required, DataType(DataType.Password)]
+        [StrongPassword] // custom validation
         public string NewPassword { get; set; }
 
         [Required, DataType(DataType.Password), Compare("NewPassword")]

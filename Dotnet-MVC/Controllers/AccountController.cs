@@ -15,7 +15,7 @@ namespace DotnetMVCApp.Controllers
     public class AccountController : Controller
     {
         private readonly IUserRepo _userRepo;
-        private readonly EmailService _emailService; // Replace IResend with EmailService
+        private readonly EmailService _emailService; 
 
         public AccountController(IUserRepo userRepo, EmailService emailService)
         {
@@ -86,7 +86,13 @@ namespace DotnetMVCApp.Controllers
                 ModelState.AddModelError(nameof(model.Email), "Invalid or non-existent email domain.");
                 return View(model);
             }
-
+            // ✅ check if email exists using SMTP
+            var emailExists = await _emailService.VerifyEmailAsync(model.Email);
+            if (!emailExists)
+            {
+                ModelState.AddModelError(nameof(model.Email), "Email address does not exist or cannot be verified.");
+                return View(model);
+            }
             // Generate OTP
             var otp = GenerateOtp();
             HttpContext.Session.SetString("RegisterOtp", otp);
@@ -98,7 +104,9 @@ namespace DotnetMVCApp.Controllers
                 await _emailService.SendEmailAsync(
                     model.Email,
                     "Registration OTP",
-                    $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"
+                    $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>" +
+                    $"<p>If you did not request this code, please <a href='mailto:deepcoding15@gmail.com' style='color:#4CAF50;'>contact us</a> immediately.</p>\r\n" +
+                    $"<p class='footer'>Thank you,<br/>Your Company Name</p>"
                 );
             }
             catch (Exception ex)
@@ -252,7 +260,9 @@ namespace DotnetMVCApp.Controllers
                 await _emailService.SendEmailAsync(
                     model.Email,
                     "Login OTP",
-                    $"<p>Your login OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"
+                    $"<p>Your login OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"+
+                    $"<p>If you did not request this code, please <a href='mailto:deepcoding15@gmail.com' style='color:#4CAF50;'>contact us</a> immediately.</p>\r\n" +
+                    $"<p class='footer'>Thank you,<br/>Your Company Name</p>"
                 );
             }
             catch (Exception ex)
@@ -372,7 +382,9 @@ namespace DotnetMVCApp.Controllers
                 await _emailService.SendEmailAsync(
                     email,
                     "Your OTP Code",
-                    $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"
+                    $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"+
+                    $"<p>If you did not request this code, please <a href='mailto:deepcoding15@gmail.com' style='color:#4CAF50;'>contact us</a> immediately.</p>\r\n" +
+                    $"<p class='footer'>Thank you,<br/>Your Company Name</p>"
                 );
             }
             catch (Exception ex)
@@ -477,7 +489,7 @@ namespace DotnetMVCApp.Controllers
             {
                 UserId = user.UserId,
                 Username = user.Username,
-                Email = user.Email,
+                // Do not populate password fields
             };
 
             return View(model);
@@ -486,50 +498,35 @@ namespace DotnetMVCApp.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateUser(UpdateUserViewModel model)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (string.IsNullOrEmpty(model.NewPassword))
+            {
+                // Remove password validation errors if empty
+                ModelState.Remove(nameof(model.NewPassword));
+                ModelState.Remove(nameof(model.ConfirmPassword));
+            }
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
 
             var user = _userRepo.GetUserById(model.UserId);
             if (user == null) return NotFound();
 
-            bool sensitiveChange = false;
+            bool passwordChanged = !string.IsNullOrEmpty(model.NewPassword);
 
-            user.Username = model.Username;
-
-            // Check if email changed
-            if (!string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
+            if (passwordChanged)
             {
-                if (!IsValidEmail(model.Email))
-                {
-                    ModelState.AddModelError("Email", "Invalid email address or domain.");
-                    return View(model);
-                }
-
-                if (_userRepo.GetUserByEmail(model.Email) != null)
-                {
-                    ModelState.AddModelError("Email", "Email is already registered.");
-                    return View(model);
-                }
-
-                user.Email = model.Email;
-                sensitiveChange = true;
-            }
-
-            // Check if password is changed
-            if (!string.IsNullOrEmpty(model.NewPassword))
-            {
+                // Password update requires OTP
                 var salt = GenerateSalt();
                 user.Password = HashPassword(model.NewPassword, salt);
                 user.Salt = salt;
-                sensitiveChange = true;
-            }
 
-            // If sensitive changes, send OTP
-            if (sensitiveChange)
-            {
                 var otp = GenerateOtp();
                 HttpContext.Session.SetString("UpdateUserOtp", otp);
                 HttpContext.Session.SetString("UpdateUserId", user.UserId.ToString());
                 HttpContext.Session.SetString("UpdateOtpExpiry", DateTime.UtcNow.AddMinutes(10).ToString());
+                HttpContext.Session.SetString("PendingUpdateUser",
+                    System.Text.Json.JsonSerializer.Serialize(model));
 
                 try
                 {
@@ -541,21 +538,22 @@ namespace DotnetMVCApp.Controllers
                 }
                 catch
                 {
-                    ModelState.AddModelError("", "Failed to send OTP. Try again.");
-                    return View(model);
+                    return Json(new { error = "Failed to send OTP. Try again." });
                 }
 
-                // Keep model in session for final update after OTP
-                HttpContext.Session.SetString("PendingUpdateUser", System.Text.Json.JsonSerializer.Serialize(model));
-
-                return Json(new { otpRequired = true }); // Tell JS to show modal
+                return Json(new { otpRequired = true });
             }
+            else
+            {
+                // Only username changed -> update directly
+                user.Username = model.Username;
+                _userRepo.Update(user);
+                TempData["Message"] = "Profile updated successfully!";
 
-            // If no sensitive change, just update
-            _userRepo.Update(user);
-            TempData["Message"] = "Profile updated successfully!";
-            return Json(new { redirectUrl = Url.Action("Profile", new { id = user.UserId }) });
+                return Json(new { redirectUrl = Url.Action("Profile", new { id = user.UserId }) });
+            }
         }
+
 
         [HttpGet]
         public IActionResult VerifyUpdateOtp()
@@ -565,43 +563,38 @@ namespace DotnetMVCApp.Controllers
                 TempData["Error"] = "No update in progress.";
                 return RedirectToAction("Profile");
             }
-            return View(new ForgotPasswordViewModel()); // reuse simple OTP model
+            return View(new ForgotPasswordViewModel()); // simple OTP input
         }
 
         [HttpPost]
         public async Task<IActionResult> VerifyUpdateOtp(ForgotPasswordViewModel model)
         {
-            // Retrieve OTP, expiry, and pending user data from session
             var storedOtp = HttpContext.Session.GetString("UpdateUserOtp");
             var expiryString = HttpContext.Session.GetString("UpdateOtpExpiry");
-            var userData = HttpContext.Session.GetString("PendingUpdateUser"); // was UpdateUserModel
+            var userData = HttpContext.Session.GetString("PendingUpdateUser");
 
-            // Validate session existence
             if (string.IsNullOrEmpty(storedOtp) || string.IsNullOrEmpty(expiryString) || string.IsNullOrEmpty(userData))
             {
                 TempData["Error"] = "OTP session expired. Please try updating your profile again.";
                 return RedirectToAction("Profile");
             }
 
-            // Validate OTP expiry
             if (DateTime.UtcNow > DateTime.Parse(expiryString))
             {
                 HttpContext.Session.Remove("UpdateUserOtp");
-                HttpContext.Session.Remove("UpdateUserModel");
+                HttpContext.Session.Remove("PendingUpdateUser");
                 HttpContext.Session.Remove("UpdateOtpExpiry");
 
                 TempData["Error"] = "OTP expired. Please try updating your profile again.";
                 return RedirectToAction("Profile");
             }
 
-            // Validate OTP correctness
             if (model.OTP != storedOtp)
             {
                 ModelState.AddModelError("", "Invalid OTP.");
                 return View(model);
             }
 
-            // Deserialize pending user update data
             var updateModel = System.Text.Json.JsonSerializer.Deserialize<UpdateUserViewModel>(userData);
             var user = _userRepo.GetUserById(updateModel.UserId);
             if (user == null)
@@ -610,12 +603,8 @@ namespace DotnetMVCApp.Controllers
                 return RedirectToAction("Profile");
             }
 
-            bool isCurrentUser = User.FindFirstValue(ClaimTypes.NameIdentifier) == user.UserId.ToString();
-
             // Apply updates
             user.Username = updateModel.Username;
-            user.Email = updateModel.Email;
-
             if (!string.IsNullOrEmpty(updateModel.NewPassword))
             {
                 var salt = GenerateSalt();
@@ -625,18 +614,18 @@ namespace DotnetMVCApp.Controllers
 
             _userRepo.Update(user);
 
-            // Refresh authentication claims if updating own profile
-            if (isCurrentUser)
+            // Refresh auth if current user
+            if (User.FindFirstValue(ClaimTypes.NameIdentifier) == user.UserId.ToString())
             {
                 await HttpContext.SignOutAsync("MyCookieAuth");
 
                 var claims = new List<Claim>
-                {
-                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                     new Claim(ClaimTypes.Name, user.Username),
-                     new Claim(ClaimTypes.Email, user.Email),
-                     new Claim(ClaimTypes.Role, user.Role.ToString())
-                };
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role.ToString())
+        };
 
                 var claimsIdentity = new ClaimsIdentity(claims, "MyCookieAuth");
                 var authProperties = new AuthenticationProperties
@@ -648,11 +637,10 @@ namespace DotnetMVCApp.Controllers
                 await HttpContext.SignInAsync("MyCookieAuth", new ClaimsPrincipal(claimsIdentity), authProperties);
             }
 
-            // Clear OTP session
+            // Clear session
             HttpContext.Session.Remove("UpdateUserOtp");
             HttpContext.Session.Remove("PendingUpdateUser");
             HttpContext.Session.Remove("UpdateOtpExpiry");
-
 
             TempData["Message"] = "Profile updated successfully!";
             return RedirectToAction("Profile", new { id = user.UserId });
@@ -706,7 +694,7 @@ namespace DotnetMVCApp.Controllers
             }
 
             // Map to view model
-            var model = new UpdateUserViewModel
+            var model = new ProfileViewModel
             {
                 UserId = user.UserId,
                 Username = user.Username,

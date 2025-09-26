@@ -8,7 +8,7 @@
     <div class="w-full max-w-lg bg-gray-800 p-8 rounded-2xl shadow-2xl">
         <h2 class="text-2xl font-bold text-center text-white mb-6">Create an Account 🚀</h2>
 
-        <form asp-action="Register" method="post" class="space-y-5">
+        <form asp-action="Register" method="post" class="space-y-5" id="RegisterForm">
 
             <!-- Username -->
             <div>
@@ -35,12 +35,34 @@
             <!-- Password -->
             <div>
                 <label asp-for="Password" class="block text-sm font-medium text-gray-300"></label>
-                <input asp-for="Password" type="password"
+                <input asp-for="Password" type="password" id="PasswordInput"
                        class="mt-1 w-full px-4 py-2 border rounded-xl bg-gray-700 text-white shadow-sm
                               focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-gray-400
                               @(ViewData.ModelState["Password"]?.Errors.Count > 0 ? "border-red-500" : "border-gray-600")"
                        placeholder="Create a password" />
-                <span asp-validation-for="Password" class="text-red-400 text-sm"></span>
+
+                <!-- Password Rules -->
+                <div class="mt-2 p-4 bg-black rounded-2xl border border-gray-700 shadow-md">
+                    <p class="text-xs text-gray-300">
+                        <b>Password must have:</b><br />
+                        <span class="text-green-300 font-medium">1 uppercase (A-Z)</span>,
+                        <span class="text-green-300 font-medium">1 lowercase (a-z)</span>,
+                        <span class="text-green-300 font-medium">1 digit (0-9)</span>,
+                        <span class="text-green-300 font-medium">1 special character</span>,<br />
+                        <b>minimum </b><span class="text-green-300 font-medium">8 characters</span>.
+                    </p>
+                </div>
+
+
+                <!-- Strength Meter -->
+                <div id="PasswordStrengthWrapper" class="mt-2 hidden">
+                    <div class="w-full bg-gray-600 rounded-full h-2">
+                        <div id="PasswordStrengthBar" class="h-2 rounded-full"></div>
+                    </div>
+                    <p id="PasswordStrengthText" class="mt-1 text-sm text-gray-400"></p>
+                </div>
+                
+                <span asp-validation-for="Password" class="text-red-400 text-sm hidden"></span>
             </div>
 
             <!-- Confirm Password -->
@@ -69,10 +91,13 @@
             </div>
 
             <!-- Submit -->
-            <button type="submit"
-                    class="w-full bg-indigo-600 text-white py-2 rounded-xl shadow-md hover:bg-indigo-700 transition">
-                Register
+            <button type="submit" id="SubmitBtn"
+                    class="w-full bg-indigo-600 text-white py-2 rounded-xl shadow-md hover:bg-indigo-700 transition flex items-center justify-center">
+                <span id="SubmitBtnText">Register</span>
+                <div id="SubmitBtnSpinner"
+                     class="hidden ml-2 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             </button>
+
         </form>
 
         <p class="mt-6 text-center text-sm text-gray-400">
@@ -84,4 +109,51 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        const passwordInput = document.getElementById("PasswordInput");
+        const strengthWrapper = document.getElementById("PasswordStrengthWrapper");
+        const strengthBar = document.getElementById("PasswordStrengthBar");
+        const strengthText = document.getElementById("PasswordStrengthText");
+        const submitBtn = document.getElementById("SubmitBtn");
+        const submitText = document.getElementById("SubmitBtnText");
+        const submitSpinner = document.getElementById("SubmitBtnSpinner");
+        const form = document.getElementById("RegisterForm");
+
+        // Password strength
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+            return strength;
+        }
+
+        function updateStrengthMeter(strength) {
+            const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-blue-500", "bg-green-500"];
+            const labels = ["Very Weak", "Weak", "Fair", "Strong", "Very Strong"];
+
+            strengthBar.className = "h-2 rounded-full " + colors[strength - 1] || "";
+            strengthBar.style.width = strength ? (strength * 20) + "%" : "0%";
+            strengthText.textContent = labels[strength - 1] || "";
+            strengthText.className = "mt-1 text-sm " + (colors[strength - 1] ? colors[strength - 1].replace("bg-", "text-") : "text-gray-400");
+        }
+
+        passwordInput.addEventListener("input", () => {
+            const value = passwordInput.value;
+            const strength = checkPasswordStrength(value);
+            if (!value) strengthWrapper.classList.add("hidden");
+            else strengthWrapper.classList.remove("hidden");
+            updateStrengthMeter(strength);
+        });
+
+        // Loader on submit
+        form.addEventListener("submit", () => {
+            submitBtn.disabled = true;
+            submitText.textContent = "Registering...";
+            submitSpinner.classList.remove("hidden");
+        });
+    </script>
 }

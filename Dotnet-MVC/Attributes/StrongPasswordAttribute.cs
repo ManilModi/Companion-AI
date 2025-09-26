@@ -1,9 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 
 namespace DotnetMVCApp.Attributes
 {
-    public class StrongPasswordAttribute : ValidationAttribute
+    public class StrongPasswordAttribute : ValidationAttribute, IClientModelValidator
     {
         protected override ValidationResult IsValid(object value, ValidationContext validationContext)
         {
@@ -28,6 +29,20 @@ namespace DotnetMVCApp.Attributes
 
             return ValidationResult.Success!;
         }
-    }
 
+        // This makes it work with jQuery Validation
+        public void AddValidation(ClientModelValidationContext context)
+        {
+            MergeAttribute(context.Attributes, "data-val", "true");
+            MergeAttribute(context.Attributes, "data-val-strongpassword",
+                "Password must be at least 8 characters long, contain uppercase, lowercase, digit, and special character.");
+        }
+
+        private bool MergeAttribute(IDictionary<string, string> attributes, string key, string value)
+        {
+            if (attributes.ContainsKey(key)) return false;
+            attributes.Add(key, value);
+            return true;
+        }
+    }
 }

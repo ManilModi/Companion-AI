@@ -44,7 +44,16 @@ namespace DotnetMVCApp.Repositories
 
         public User Update(User userChanges)
         {
-            _context.AppUsers.Update(userChanges);
+            var entry = _context.Attach(userChanges);
+
+            entry.Property(u => u.Username).IsModified = true;
+
+            if (!string.IsNullOrEmpty(userChanges.Password))
+            {
+                entry.Property(u => u.Password).IsModified = true;
+                entry.Property(u => u.Salt).IsModified = true;
+            }
+
             _context.SaveChanges();
             return userChanges;
         }
