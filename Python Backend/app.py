@@ -1,8 +1,8 @@
 import os
 import shutil
 import json
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -13,6 +13,10 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 from Agents.resume_agent import resume_agent
 from Agents.scoring_agent import scoring_agent
 from Agents.JobSearch_agent import job_search_agent
+from Agents.mock_interview import run_mock_interview
+
+import cv2
+
 
 app = FastAPI(title="Resume + Scoring API", version="1.0")
 
@@ -154,3 +158,57 @@ def search_jobs(request: CustomPromptRequest):
         return {"jobs": jobs}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def generate_frames():
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        raise RuntimeError("Could not open webcam.")
+    while True:
+        success, frame = cap.read()
+        if not success:
+            continue
+        ret, buffer = cv2.imencode(".jpg", frame)
+        if not ret:
+            continue
+        frame_bytes = buffer.tobytes()
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n"
+            b"Content-Length: " + f"{len(frame_bytes)}".encode() + b"\r\n\r\n" +
+            frame_bytes + b"\r\n"
+        )
+    cap.release()
+
+
+
+@app.get("/video_feed")
+def video_feed():
+    return StreamingResponse(
+        generate_frames(),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
+
+class InterviewRequest(BaseModel):
+    job_id: int
+    job_desc: str
+
+@app.post("/start_interview/")
+async def start_interview(request: InterviewRequest):
+    try:
+        # Generate a NEW mock interview dynamically
+        result = run_mock_interview(request.job_desc)
+        final_overall = result.get("final_overall", {})
+        qa_results = result.get("qa_results", [])
+
+        return JSONResponse(content={
+            "status": "success",
+            "results": qa_results,
+            "final_overall": final_overall
+        })
+
+    except Exception as e:
+        return JSONResponse(
+            content={"status": "error", "message": str(e)},
+            status_code=500
+        )

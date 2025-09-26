@@ -1,0 +1,66 @@
+﻿@model List<DotnetMVCApp.ViewModels.Candidate.MockInterviewHistoryViewModel>
+
+@{
+    ViewData["Title"] = "Mock Interview History";
+    Layout = "~/Views/Shared/_CandidateLayout.cshtml";
+}
+
+<div class="min-h-screen bg-gray-900 text-white p-6">
+    <h1 class="text-3xl font-bold mb-6">Mock Interview History</h1>
+
+    @if (Model.Count == 0)
+    {
+        <p class="text-gray-400">You have not taken any mock interviews yet.</p>
+    }
+    else
+    {
+        <table class="min-w-full table-auto bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+            <thead>
+                <tr class="bg-gray-700 text-left">
+                    <th class="px-4 py-2">#</th>
+                    <th class="px-4 py-2">Job Title</th>
+                    <th class="px-4 py-2">Score</th>
+                    <th class="px-4 py-2">Taken On</th>
+                    @* <th class="px-4 py-2">Details</th> *@
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.Count; i++)
+                {
+                    var interview = Model[i];
+                    <tr class="border-t border-gray-700">
+                        <td class="px-4 py-2">@interview.InterviewId</td>
+                        <td class="px-4 py-2">@interview.JobTitle</td>
+                        <td class="px-4 py-2">
+                            @{
+                                string finalScore = "N/A";
+                                if (!string.IsNullOrEmpty(interview.Score))
+                                {
+                                    try
+                                    {
+                                        var scoreObj = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(interview.Score);
+                                        if (scoreObj != null && scoreObj.ContainsKey("final_score"))
+                                        {
+                                            finalScore = scoreObj["final_score"]?.ToString() ?? "N/A";
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        finalScore = "Invalid Score";
+                                    }
+                                }
+                            }
+                            @finalScore
+
+                        </td>
+                        <td class="px-4 py-2">@interview.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</td>
+                        @* <td class="px-4 py-2">
+                            <a href="@Url.Action("ViewInterviewDetails", "Candidate", new { id = interview.InterviewId })"
+                               class="text-blue-400 hover:underline">View</a>
+                        </td> *@
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

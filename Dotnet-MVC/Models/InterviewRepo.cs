@@ -53,5 +53,18 @@ namespace DotnetMVCApp.Repositories
             }
             return interview;
         }
+
+        public IEnumerable<Interview> GetByUser(int userId)
+        {
+            return _context.Interviews
+                .Include(i => i.Job)
+                .Where(i => i.UserId == userId)
+                .OrderByDescending(i => i.CreatedAt)
+                .ToList();
+        }
+
+
+
+
     }
 }

@@ -14,11 +14,11 @@ namespace DotnetMVCApp.Models
         public int JobId { get; set; }
         public Job? Job { get; set; }
 
-        public string? VideoUrl { get; set; } // Cloudinary
-        public string? AudioUrl { get; set; } // Cloudinary
-
         [Column(TypeName = "jsonb")]
         public string? Score { get; set; }
+
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
 
