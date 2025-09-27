@@ -18,18 +18,18 @@
         <div>
             <select name="sortBy"
                     class="px-3 py-2 rounded-xl bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-indigo-400">
-                <option value="similarity" selected>Most Relevant</option>
-                <option value="recent">Recently Posted</option>
-                <option value="applicants">Most Applicants</option>
+                <option value="similarity" selected="@(Context.Request.Query["sortBy"] == "similarity")">Most Relevant</option>
+                <option value="recent" selected="@(Context.Request.Query["sortBy"] == "recent")">Recently Posted</option>
+                <option value="applicants" selected="@(Context.Request.Query["sortBy"] == "applicants")">Most Applicants</option>
             </select>
         </div>
 
         <div>
             <select name="status"
                     class="px-3 py-2 rounded-xl bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-indigo-400">
-                <option value="">All Jobs</option>
-                <option value="active">Active</option>
-                <option value="closed">Closed</option>
+                <option value="" selected="@(string.IsNullOrEmpty(Context.Request.Query["status"]))">All Jobs</option>
+                <option value="active" selected="@(Context.Request.Query["status"] == "active")">Active</option>
+                <option value="closed" selected="@(Context.Request.Query["status"] == "closed")">Closed</option>
             </select>
         </div>
 
@@ -37,12 +37,29 @@
             <button type="submit"
                     class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-300 to-purple-400 text-gray-900
                        font-medium shadow-md hover:shadow-lg transition duration-200">
-                Apply
+                Filter
             </button>
         </div>
     </form>
 
-    <p class="text-gray-400 mb-4">Showing @Model.Count jobs</p>
+    <!-- Showing jobs info -->
+    <p class="text-gray-400 mb-4">
+        Showing @Model.Count jobs
+        @if (!string.IsNullOrEmpty(Context.Request.Query["query"]))
+        {
+            <span>for "<strong>@Context.Request.Query["query"]</strong>"</span>
+        }
+        (sorted by
+        @(
+                Context.Request.Query["sortBy"].ToString() switch
+                {
+                    "recent" => "Recently Posted",
+                    "applicants" => "Most Applicants",
+                    _ => "Relevance"
+                }
+                ))
+
+    </p>
 
     <div class="space-y-4">
         @foreach (var job in Model)
@@ -51,13 +68,33 @@
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
                     <!-- Job Info -->
                     <div>
-                        <h2 class="text-xl font-semibold">@job.JobTitle</h2>
+                        <h2 class="text-xl font-semibold flex items-center">
+                            @job.JobTitle
+                            @if (job.Similarity >= 0.75f)
+                            {
+                                <span class="ml-2 px-2 py-1 bg-green-700 text-xs rounded-lg">Top Match</span>
+                            }
+                            else if (job.Similarity >= 0.5f)
+                            {
+                                <span class="ml-2 px-2 py-1 bg-yellow-600 text-xs rounded-lg">Good Match</span>
+                            }
+                            else
+                            {
+                                <span class="ml-2 px-2 py-1 bg-gray-600 text-xs rounded-lg">Low Match</span>
+                            }
+                        </h2>
                         <p class="text-gray-400">@job.Company</p>
                         <div class="flex flex-wrap items-center text-sm text-gray-500 space-x-4 mt-2">
                             <span>@job.Location</span>
                             <span>@job.JobType</span>
                             <span>@job.SalaryRange</span>
                         </div>
+
+                        @* <!-- Match Score -->
+                        <p class="text-sm text-indigo-400 mt-2">
+                            Match Score: @(job.Similarity * 100).ToString("F1")%
+                        </p> *@
+
                         <p class="text-sm text-gray-500 mt-2">@job.ApplicantsCount applicants</p>
                     </div>
 
@@ -95,7 +132,7 @@
                         {
                             <button type="button"
                                     onclick="openWithdrawModal(@job.JobId)"
-                                    class="px-4 py-2 rounded-xl bg-red-600 text-white font-medium shadow-md hover:bg-red-700 transition">
+                                    class="px-4 py-2 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition">
                                 Withdraw Application
                             </button>
 

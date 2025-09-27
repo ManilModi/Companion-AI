@@ -191,25 +191,28 @@ namespace DotnetMVCApp.Controllers
                 ).ToList();
             }
 
-            // 2️⃣ Filter by status
+            // 2️⃣ Filter by status (active / closed)
             if (!string.IsNullOrWhiteSpace(status))
             {
                 var now = DateTime.Now;
-                allJobs = status == "active"
+                allJobs = status.Equals("active", StringComparison.OrdinalIgnoreCase)
                     ? allJobs.Where(j => j.CloseTime > now).ToList()
                     : allJobs.Where(j => j.CloseTime <= now).ToList();
             }
 
+            // Applied jobs for the current user
             var appliedJobIds = _unitOfWork.UserJobs.GetJobsByUser(userId)
                                                    .Select(uj => uj.JobId)
                                                    .ToHashSet();
 
+            // Map jobs to view models
             var model = _mapper.Map<List<JobSearchViewModel>>(allJobs);
 
+            // Current candidate details
             var currentUser = _unitOfWork.Users.GetUserById(userId);
             var extractedInfo = currentUser?.ExtractedInfo ?? "{}";
 
-            // 3️⃣ Candidate embedding (once)
+            // 3️⃣ Get candidate embedding (once)
             float[] candidateEmbedding = null;
             try
             {
@@ -223,17 +226,29 @@ namespace DotnetMVCApp.Controllers
                     candidateEmbedding = json?.Embedding;
                 }
             }
-            catch { }
+            catch
+            {
+                // log exception if needed
+            }
+
+            // 4️⃣ Process each job
             foreach (var jobVm in model)
             {
                 var jobEntity = allJobs.First(j => j.JobId == jobVm.JobId);
 
+                // Applied status
                 jobVm.HasApplied = appliedJobIds.Contains(jobVm.JobId);
+
+                // Active or closed
                 jobVm.Status = jobEntity.CloseTime > DateTime.Now ? "active" : "closed";
+
+                // Applicants count
                 jobVm.ApplicantsCount = jobEntity.Applicants?.Count ?? 0;
+
+                // Candidate resume (json string for debugging/feedback)
                 jobVm.CandidateResumeJson = extractedInfo;
 
-                // Job description text
+                // Job description (fetched from URL if provided)
                 string jobText = "No description provided.";
                 if (!string.IsNullOrEmpty(jobEntity.JobDescription))
                 {
@@ -241,18 +256,23 @@ namespace DotnetMVCApp.Controllers
                     {
                         var response = await _httpClient.GetAsync(jobEntity.JobDescription);
                         if (response.IsSuccessStatusCode)
+                        {
                             jobText = await response.Content.ReadAsStringAsync();
+                        }
                     }
-                    catch { }
+                    catch
+                    {
+                        // log exception if needed
+                    }
                 }
                 jobVm.Description = jobText;
 
-                // Feedback
+                // Feedback status
                 var feedback = _unitOfWork.Feedbacks.GetByUserAndJob(userId, jobVm.JobId);
                 jobVm.HasFeedback = feedback != null;
                 jobVm.FeedbackId = feedback?.FeedbackId;
 
-                // ✅ Similarity using stored embedding
+                // Similarity (resume vs job embedding)
                 if (candidateEmbedding != null && jobEntity.Embedding != null)
                 {
                     jobVm.Similarity = CosineSimilarity(candidateEmbedding, jobEntity.Embedding);
@@ -263,16 +283,17 @@ namespace DotnetMVCApp.Controllers
                 }
             }
 
-            // Sort by similarity (default)
+            // 5️⃣ Sort results
             model = sortBy switch
             {
                 "recent" => model.OrderByDescending(j => j.OpenTime).ToList(),
                 "applicants" => model.OrderByDescending(j => j.ApplicantsCount).ToList(),
-                _ => model.OrderByDescending(j => j.Similarity).ToList()
+                _ => model.OrderByDescending(j => j.Similarity).ToList() // default: similarity
             };
 
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
         }
+
 
         // Embed response class
         public class EmbedResponse
@@ -280,32 +301,23 @@ namespace DotnetMVCApp.Controllers
             public float[] Embedding { get; set; }
         }
 
-        // Cosine similarity helper
-        private float CosineSimilarity(float[] vec1, float[] vec2)
+        private float CosineSimilarity(float[] a, float[] b)
         {
-            if (vec1.Length != vec2.Length) return 0f;
-
-            float dot = 0f;
-            float normA = 0f;
-            float normB = 0f;
-
-            for (int i = 0; i < vec1.Length; i++)
+            float dot = 0f, normA = 0f, normB = 0f;
+            for (int i = 0; i < a.Length; i++)
             {
-                dot += vec1[i] * vec2[i];
-                normA += vec1[i] * vec1[i];
-                normB += vec2[i] * vec2[i];
+                dot += a[i] * b[i];
+                normA += a[i] * a[i];
+                normB += b[i] * b[i];
             }
-
-            return (float)(dot / (Math.Sqrt(normA) * Math.Sqrt(normB) + 1e-8));
+            return dot / (float)(Math.Sqrt(normA) * Math.Sqrt(normB) + 1e-10);
         }
 
         private float[] Normalize(float[] vec)
         {
             float norm = (float)Math.Sqrt(vec.Sum(x => x * x));
-            if (norm == 0) return vec;
-            return vec.Select(x => x / norm).ToArray();
+            return vec.Select(x => x / (norm + 1e-10f)).ToArray();
         }
-
 
 
 
@@ -407,7 +419,7 @@ namespace DotnetMVCApp.Controllers
 
             string extractedInfo = user.ExtractedInfo;
 
-            // Candidate embedding
+            // ✅ Candidate embedding (not needed for search, but you may keep it for personalization)
             float[] candidateEmbedding = null;
             try
             {
@@ -423,7 +435,7 @@ namespace DotnetMVCApp.Controllers
             }
             catch { }
 
-            // Query embedding
+            // ✅ Query embedding
             float[] queryEmbedding = null;
             if (!string.IsNullOrWhiteSpace(query))
             {
@@ -442,7 +454,7 @@ namespace DotnetMVCApp.Controllers
                 catch { }
             }
 
-            // Fetch all jobs
+            // ✅ Fetch all jobs
             var allJobs = _unitOfWork.Jobs.GetAllJobs();
             var appliedJobIds = _unitOfWork.UserJobs.GetJobsByUser(userId)
                                                    .Select(uj => uj.JobId)
@@ -457,12 +469,12 @@ namespace DotnetMVCApp.Controllers
 
                 float similarity = 0f;
 
+                // ✅ Use pre-stored job embeddings from DB
                 if (queryEmbedding != null && jobEntity.Embedding != null)
                 {
                     similarity = CosineSimilarity(Normalize(queryEmbedding), Normalize(jobEntity.Embedding));
                 }
 
-                // Flag if we have at least one meaningful match
                 if (similarity > 0.01f) anyMatch = true;
 
                 jobVm.Similarity = similarity;
@@ -473,7 +485,6 @@ namespace DotnetMVCApp.Controllers
                 jobVm.CandidateResumeJson = extractedInfo;
             }
 
-            // If no semantic match found, show all jobs with similarity = 0
             if (!anyMatch)
             {
                 foreach (var jobVm in model)
@@ -482,11 +493,13 @@ namespace DotnetMVCApp.Controllers
                 }
             }
 
-            // Sort by similarity (descending)
+            // ✅ Sort by similarity (descending)
             model = model.OrderByDescending(j => j.Similarity).ToList();
 
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
         }
+
+
 
 
         public IActionResult JobMarket()

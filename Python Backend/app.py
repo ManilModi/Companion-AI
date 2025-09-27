@@ -112,6 +112,7 @@ class EmbeddingResponse(BaseModel):
 
 @app.post("/embed", response_model=EmbeddingResponse)
 async def get_embedding(data: TextInput):
+    print(f"✅ Received text ({len(data.text)} chars): {repr(data.text[:200])}")
     vector = model.encode(data.text).tolist()
     return {"embedding": vector}
 
@@ -135,7 +136,6 @@ class ResumeJobSearchRequest(BaseModel):
     achievements_like_awards_and_certifications: List[str]
 
 
-# --------- 4. FastAPI Models ----------
 class JobItem(BaseModel):
     title: str
     link: str
