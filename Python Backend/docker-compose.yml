@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: manilmodi/companion-ai-fastapis:latest
+    container_name: companion-ai-fastapis
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

@@ -7,15 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from Feedback.sentiment import analyze_feedback
-from sentence_transformers import SentenceTransformer
-model = SentenceTransformer("all-MiniLM-L6-v2")
+
 
 from Agents.resume_agent import resume_agent
 from Agents.scoring_agent import scoring_agent
 from Agents.JobSearch_agent import job_search_agent
 from Agents.mock_interview import run_mock_interview
 
-import cv2
 
 
 app = FastAPI(title="Resume + Scoring API", version="1.0")
@@ -28,8 +26,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def health():
+    return {"status": "ok"}
 
-# === Resume Parsing Endpoint ===
+
 @app.post("/parse-resume/")
 async def parse_resume(file: UploadFile = File(...)):
     if not (file.filename.endswith(".pdf") or file.filename.endswith(".docx")):
@@ -40,13 +41,11 @@ async def parse_resume(file: UploadFile = File(...)):
     file_path = os.path.join(temp_dir, file.filename)
 
     try:
-        # Save uploaded file
         with open(file_path, "wb") as f_out:
             shutil.copyfileobj(file.file, f_out)
 
         parsed = resume_agent.invoke({"resume_file_path": file_path})
 
-        # Ensure we return dict
         if isinstance(parsed, str):
             try:
                 parsed = json.loads(parsed)
@@ -58,8 +57,6 @@ async def parse_resume(file: UploadFile = File(...)):
         if os.path.exists(file_path):
             os.remove(file_path)
 
-
-# === Resume Scoring Endpoint ===
 class ScoreResumeInput(BaseModel):
     resume_json: Dict[str, Any]
     job_description: str
@@ -87,7 +84,7 @@ async def score_resume(input_data: ScoreResumeInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Scoring failed: {e}")
 
-# === Sentiment Analysis Endpoint ===
+
 class SentimentInput(BaseModel):
     feedback: str
 
@@ -110,12 +107,20 @@ class TextInput(BaseModel):
 class EmbeddingResponse(BaseModel):
     embedding: List[float]
 
-@app.post("/embed", response_model=EmbeddingResponse)
-async def get_embedding(data: TextInput):
-    print(f"✅ Received text ({len(data.text)} chars): {repr(data.text[:200])}")
-    vector = model.encode(data.text).tolist()
-    return {"embedding": vector}
 
+model = None
+
+def get_model():
+    global model
+    if model is None:
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+    return model
+
+@app.post("/embed")
+async def get_embedding(data: TextInput):
+    vector = get_model().encode(data.text).tolist()
+    return {"embedding": vector}
 
 
 @app.get("/charts")
@@ -148,7 +153,7 @@ class CustomPromptRequest(BaseModel):
     custom_prompt: str
 
 
-# --------- 5. Endpoint ----------
+
 @app.post("/search_jobs", response_model=JobSearchResponse)
 def search_jobs(request: CustomPromptRequest):
     try:
@@ -160,34 +165,6 @@ def search_jobs(request: CustomPromptRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def generate_frames():
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        raise RuntimeError("Could not open webcam.")
-    while True:
-        success, frame = cap.read()
-        if not success:
-            continue
-        ret, buffer = cv2.imencode(".jpg", frame)
-        if not ret:
-            continue
-        frame_bytes = buffer.tobytes()
-        yield (
-            b"--frame\r\n"
-            b"Content-Type: image/jpeg\r\n"
-            b"Content-Length: " + f"{len(frame_bytes)}".encode() + b"\r\n\r\n" +
-            frame_bytes + b"\r\n"
-        )
-    cap.release()
-
-
-
-@app.get("/video_feed")
-def video_feed():
-    return StreamingResponse(
-        generate_frames(),
-        media_type="multipart/x-mixed-replace; boundary=frame"
-    )
 
 class InterviewRequest(BaseModel):
     job_id: int
@@ -196,7 +173,7 @@ class InterviewRequest(BaseModel):
 @app.post("/start_interview/")
 async def start_interview(request: InterviewRequest):
     try:
-        # Generate a NEW mock interview dynamically
+
         result = run_mock_interview(request.job_desc)
         final_overall = result.get("final_overall", {})
         qa_results = result.get("qa_results", [])

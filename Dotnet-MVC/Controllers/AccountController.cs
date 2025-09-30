@@ -86,7 +86,7 @@ namespace DotnetMVCApp.Controllers
                 ModelState.AddModelError(nameof(model.Email), "Invalid or non-existent email domain.");
                 return View(model);
             }
-            // ✅ check if email exists using SMTP
+            //check if email exists using SMTP
             var emailExists = await _emailService.VerifyEmailAsync(model.Email);
             if (!emailExists)
             {

@@ -90,11 +90,6 @@
                             <span>@job.SalaryRange</span>
                         </div>
 
-                        @* <!-- Match Score -->
-                        <p class="text-sm text-indigo-400 mt-2">
-                            Match Score: @(job.Similarity * 100).ToString("F1")%
-                        </p> *@
-
                         <p class="text-sm text-gray-500 mt-2">@job.ApplicantsCount applicants</p>
                     </div>
 
@@ -111,48 +106,62 @@
                             View Details
                         </button>
 
-                        <!-- Mock Interview Button -->
-                        @if (job.HasApplied)
+                        @if (job.Status == "active")
                         {
-                            <a href="@Url.Action("MockInterview", "Candidate", new { id = job.JobId })"
-                               class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-400 to-pink-500 text-white font-medium shadow-md hover:shadow-lg transition duration-200">
-                                Mock Interview
-                            </a>
+                            <!-- Active Job Buttons -->
+                            <!-- Mock Interview -->
+                            @if (job.HasApplied)
+                            {
+                                <a href="@Url.Action("MockInterview", "Candidate", new { id = job.JobId })"
+                                   class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-400 to-pink-500 text-white font-medium shadow-md hover:shadow-lg transition duration-200">
+                                    Mock Interview
+                                </a>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        onclick="openMockInterviewAlert()"
+                                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-400 to-pink-500 text-white font-medium shadow-md hover:shadow-lg transition duration-200">
+                                    Mock Interview
+                                </button>
+                            }
+
+                            @if (job.HasApplied)
+                            {
+                                <button type="button"
+                                        onclick="openWithdrawModal(@job.JobId)"
+                                        class="px-4 py-2 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition">
+                                    Withdraw Application
+                                </button>
+
+                                <button type="button"
+                                        onclick="fetchSuggestions(@job.JobId)"
+                                        class="px-4 py-2 rounded-xl bg-indigo-500 text-white font-medium shadow-md hover:bg-indigo-600 transition">
+                                    Suggestions
+                                </button>
+
+                                <input type="hidden" id="resumeJson-@job.JobId" value='@Html.Raw(job.CandidateResumeJson ?? "{}")' />
+                                <input type="hidden" id="jobDesc-@job.JobId" value="@job.Description" />
+                            }
+                            else
+                            {
+                                <a href="@Url.Action("ApplyJob", "Candidate", new { id = job.JobId })"
+                                   class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-400 to-cyan-400 text-white font-medium shadow-md hover:shadow-lg transition duration-200">
+                                    Apply Now
+                                </a>
+                            }
                         }
                         else
                         {
-                            <button type="button"
-                                    onclick="openMockInterviewAlert()"
-                                    class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-400 to-pink-500 text-white font-medium shadow-md hover:shadow-lg transition duration-200">
-                                Mock Interview
-                            </button>
-                        }
-
-                        @if (job.HasApplied)
-                        {
-                            <button type="button"
-                                    onclick="openWithdrawModal(@job.JobId)"
-                                    class="px-4 py-2 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition">
-                                Withdraw Application
-                            </button>
-
+                            <!-- Closed Job Buttons -->
                             <button type="button"
                                     onclick="fetchSuggestions(@job.JobId)"
                                     class="px-4 py-2 rounded-xl bg-indigo-500 text-white font-medium shadow-md hover:bg-indigo-600 transition">
                                 Suggestions
                             </button>
-
-                            <input type="hidden" id="resumeJson-@job.JobId" value='@Html.Raw(job.CandidateResumeJson ?? "{}")' />
-                            <input type="hidden" id="jobDesc-@job.JobId" value="@job.Description" />
-                        }
-                        else
-                        {
-                            <a href="@Url.Action("ApplyJob", "Candidate", new { id = job.JobId })"
-                               class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-400 to-cyan-400 text-white font-medium shadow-md hover:shadow-lg transition duration-200">
-                                Apply Now
-                            </a>
                         }
 
+                        <!-- Feedback button (always shown) -->
                         <a href="@Url.Action("JobFeedbacksCandidate", "Feedback", new { jobId = job.JobId })"
                            class="px-4 py-2 rounded-xl bg-yellow-500 text-white font-medium shadow-md hover:bg-yellow-600 transition">
                             Feedback
@@ -296,8 +305,8 @@
         }
 
         async function fetchSuggestions(jobId) {
-            const resumeJson = JSON.parse(document.getElementById(`resumeJson-${jobId}`).value || "{}");
-            const jobDesc = document.getElementById(`jobDesc-${jobId}`).value || "";
+            const resumeJson = JSON.parse(document.getElementById(`resumeJson-${jobId}`)?.value || "{}");
+            const jobDesc = document.getElementById(`jobDesc-${jobId}`)?.value || "";
 
             const requestData = { resume_json: resumeJson, job_description: jobDesc };
 

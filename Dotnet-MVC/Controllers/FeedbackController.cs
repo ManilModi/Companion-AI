@@ -109,7 +109,7 @@ namespace DotnetMVCApp.Controllers
             }
 
             double? avgSentiment = null;
-            if (feedbackEntities.Count(f => f.Sentiment.HasValue) >= 10)
+            if (feedbackEntities.Count(f => f.Sentiment.HasValue) >= 5)
             {
                 avgSentiment = feedbackEntities
                     .Where(f => f.Sentiment.HasValue)
