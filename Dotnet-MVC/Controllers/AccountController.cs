@@ -86,13 +86,6 @@ namespace DotnetMVCApp.Controllers
                 ModelState.AddModelError(nameof(model.Email), "Invalid or non-existent email domain.");
                 return View(model);
             }
-            //check if email exists using SMTP
-            var emailExists = await _emailService.VerifyEmailAsync(model.Email);
-            if (!emailExists)
-            {
-                ModelState.AddModelError(nameof(model.Email), "Email address does not exist or cannot be verified.");
-                return View(model);
-            }
             // Generate OTP
             var otp = GenerateOtp();
             HttpContext.Session.SetString("RegisterOtp", otp);
@@ -106,7 +99,7 @@ namespace DotnetMVCApp.Controllers
                     "Registration OTP",
                     $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>" +
                     $"<p>If you did not request this code, please <a href='mailto:deepcoding15@gmail.com' style='color:#4CAF50;'>contact us</a> immediately.</p>\r\n" +
-                    $"<p class='footer'>Thank you,<br/>Your Company Name</p>"
+                    $"<p class='footer'>Thank you,<br/>Companion-AI</p>"
                 );
             }
             catch (Exception ex)
@@ -260,9 +253,9 @@ namespace DotnetMVCApp.Controllers
                 await _emailService.SendEmailAsync(
                     model.Email,
                     "Login OTP",
-                    $"<p>Your login OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"+
+                    $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>" +
                     $"<p>If you did not request this code, please <a href='mailto:deepcoding15@gmail.com' style='color:#4CAF50;'>contact us</a> immediately.</p>\r\n" +
-                    $"<p class='footer'>Thank you,<br/>Your Company Name</p>"
+                    $"<p class='footer'>Thank you,<br/>Companion-AI</p>"
                 );
             }
             catch (Exception ex)
@@ -382,9 +375,9 @@ namespace DotnetMVCApp.Controllers
                 await _emailService.SendEmailAsync(
                     email,
                     "Your OTP Code",
-                    $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"+
+                    $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>" +
                     $"<p>If you did not request this code, please <a href='mailto:deepcoding15@gmail.com' style='color:#4CAF50;'>contact us</a> immediately.</p>\r\n" +
-                    $"<p class='footer'>Thank you,<br/>Your Company Name</p>"
+                    $"<p class='footer'>Thank you,<br/>Companion-AI</p>"
                 );
             }
             catch (Exception ex)
@@ -533,7 +526,9 @@ namespace DotnetMVCApp.Controllers
                     await _emailService.SendEmailAsync(
                         user.Email,
                         "Profile Update OTP",
-                        $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>"
+                        $"<p>Your OTP is <strong>{otp}</strong>. It expires in 10 minutes.</p>" +
+                    $"<p>If you did not request this code, please <a href='mailto:deepcoding15@gmail.com' style='color:#4CAF50;'>contact us</a> immediately.</p>\r\n" +
+                    $"<p class='footer'>Thank you,<br/>Companion-AI</p>"
                     );
                 }
                 catch

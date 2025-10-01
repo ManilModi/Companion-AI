@@ -47,32 +47,5 @@ namespace DotnetMVCApp.Attributes
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
         }
-
-        // Verify if email exists (using SMTP VRFY)
-        public async Task<bool> VerifyEmailAsync(string emailToVerify)
-        {
-            try
-            {
-                using var smtp = new SmtpClient();
-                await smtp.ConnectAsync(_emailSettings.SmtpServer, _emailSettings.Port, MailKit.Security.SecureSocketOptions.StartTls);
-                await smtp.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password);
-
-                var result = smtp.Verify(emailToVerify); // VRFY command
-
-                await smtp.DisconnectAsync(true);
-
-                return result != null; // If server responds with mailbox, return true
-            }
-            catch (MailKit.Net.Smtp.SmtpCommandException ex)
-            {
-                Console.WriteLine($"Verification failed: {ex.Message}");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-                return false;
-            }
-        }
     }
 }
