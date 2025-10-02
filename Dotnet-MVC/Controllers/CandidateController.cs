@@ -275,11 +275,19 @@ namespace DotnetMVCApp.Controllers
                 // ⭐ New: calculate feedback stats
                 var allFeedbacks = _unitOfWork.Feedbacks.GetByJob(jobVm.JobId).ToList();
                 jobVm.FeedbackCount = allFeedbacks.Count;
+
                 if (jobVm.FeedbackCount >= 5)
                 {
-                    // Assuming Feedback.Sentiment is 1–5 rating
-                    jobVm.AverageSentiment = allFeedbacks.Average(f => f.Sentiment ?? 0);
+                    // Map -1 → 1, 0 → 3, 1 → 5
+                    var mappedScores = allFeedbacks.Select(f =>
+                        f.Sentiment == 1 ? 5 :
+                        f.Sentiment == 0 ? 3 :
+                        f.Sentiment == -1 ? 1 : 0
+                    );
+
+                    jobVm.AverageSentiment = mappedScores.Average();
                 }
+
 
                 // Similarity (resume vs job embedding)
                 if (candidateEmbedding != null && jobEntity.Embedding != null)
