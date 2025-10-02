@@ -9,12 +9,12 @@
         <h2 class="text-2xl font-bold text-center text-white mb-6">Welcome Back 👋</h2>
 
         <!-- Display Success or Error -->
-        @if (TempData["Message"] != null)
+        @* @if (TempData["Message"] != null)
         {
             <div class="text-green-400 text-center mb-4 font-medium">
                 @TempData["Message"]
             </div>
-        }
+        } *@
 
         <form asp-action="Login" method="post" class="space-y-5">
             <!-- Email -->

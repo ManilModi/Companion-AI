@@ -1,14 +1,15 @@
-﻿using System.Net;
-using System.Net.Mail;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using DotnetMVCApp.Attributes;
+﻿using DotnetMVCApp.Attributes;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.ViewModels;
 using HiringAssistance.Models;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
+using System.Net.Mail;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace DotnetMVCApp.Controllers
 {
@@ -343,6 +344,7 @@ namespace DotnetMVCApp.Controllers
 
         // ---------------- Logout ----------------
         [HttpPost]
+        [Authorize(Roles = "HR,Candidate")]
         public async Task<IActionResult> Logout()
         {
             HttpContext.Session.Clear();
@@ -473,6 +475,7 @@ namespace DotnetMVCApp.Controllers
 
         // ---------------- Update User ----------------
         [HttpGet]
+        [Authorize(Roles = "HR,Candidate")]
         public IActionResult UpdateUser(int id)
         {
             var user = _userRepo.GetUserById(id);
@@ -489,6 +492,7 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "HR,Candidate")]
         public async Task<IActionResult> UpdateUser(UpdateUserViewModel model)
         {
             if (string.IsNullOrEmpty(model.NewPassword))
@@ -551,6 +555,7 @@ namespace DotnetMVCApp.Controllers
 
 
         [HttpGet]
+        [Authorize(Roles = "HR,Candidate")]
         public IActionResult VerifyUpdateOtp()
         {
             if (HttpContext.Session.GetString("UpdateUserOtp") == null)
@@ -562,6 +567,7 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "HR,Candidate")]
         public async Task<IActionResult> VerifyUpdateOtp(ForgotPasswordViewModel model)
         {
             var storedOtp = HttpContext.Session.GetString("UpdateUserOtp");
@@ -644,6 +650,7 @@ namespace DotnetMVCApp.Controllers
 
         // ---------------- Delete User ----------------
         [HttpPost]
+        [Authorize(Roles = "HR,Candidate")]
         public async Task<IActionResult> DeleteUser()
         {
             var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -667,6 +674,7 @@ namespace DotnetMVCApp.Controllers
 
         //------search user profile------
         [HttpGet]
+        [Authorize(Roles = "HR,Candidate")]
         public IActionResult Profile(int? id)
         {
             // If no ID is provided, use logged-in user's ID

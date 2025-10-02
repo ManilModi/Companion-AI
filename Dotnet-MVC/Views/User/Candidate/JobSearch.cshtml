@@ -70,7 +70,7 @@
                     <div>
                         <h2 class="text-xl font-semibold flex items-center">
                             @job.JobTitle
-                            @if (job.Similarity >= 0.75f)
+                            @* @if (job.Similarity >= 0.75f)
                             {
                                 <span class="ml-2 px-2 py-1 bg-green-700 text-xs rounded-lg">Top Match</span>
                             }
@@ -81,7 +81,7 @@
                             else
                             {
                                 <span class="ml-2 px-2 py-1 bg-gray-600 text-xs rounded-lg">Low Match</span>
-                            }
+                            } *@
                         </h2>
                         <p class="text-gray-400">@job.Company</p>
                         <div class="flex flex-wrap items-center text-sm text-gray-500 space-x-4 mt-2">
@@ -91,6 +91,19 @@
                         </div>
 
                         <p class="text-sm text-gray-500 mt-2">@job.ApplicantsCount applicants</p>
+
+                        @* ⭐ Average sentiment rating (only if ≥ 5 feedbacks) *@
+                        @if (job.FeedbackCount >= 5 && job.AverageSentiment.HasValue)
+                        {
+                            <div class="flex items-center mt-1">
+                                <span class="text-yellow-400">⭐</span>
+                                <span class="ml-2 text-gray-300 text-sm">
+                                    @job.AverageSentiment.Value.ToString("0.0") / 5
+                                    <span class="text-gray-500">(@job.FeedbackCount reviews)</span>
+                                </span>
+                            </div>
+                        }
+
                     </div>
 
                     <!-- Action Buttons -->

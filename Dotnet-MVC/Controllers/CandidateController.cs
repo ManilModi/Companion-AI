@@ -267,10 +267,19 @@ namespace DotnetMVCApp.Controllers
                 }
                 jobVm.Description = jobText;
 
-                // Feedback status
+                // Feedback status for current user
                 var feedback = _unitOfWork.Feedbacks.GetByUserAndJob(userId, jobVm.JobId);
                 jobVm.HasFeedback = feedback != null;
                 jobVm.FeedbackId = feedback?.FeedbackId;
+
+                // ⭐ New: calculate feedback stats
+                var allFeedbacks = _unitOfWork.Feedbacks.GetByJob(jobVm.JobId).ToList();
+                jobVm.FeedbackCount = allFeedbacks.Count;
+                if (jobVm.FeedbackCount >= 5)
+                {
+                    // Assuming Feedback.Sentiment is 1–5 rating
+                    jobVm.AverageSentiment = allFeedbacks.Average(f => f.Sentiment ?? 0);
+                }
 
                 // Similarity (resume vs job embedding)
                 if (candidateEmbedding != null && jobEntity.Embedding != null)
@@ -293,6 +302,7 @@ namespace DotnetMVCApp.Controllers
 
             return View("~/Views/User/Candidate/JobSearch.cshtml", model);
         }
+
 
 
         // Embed response class

@@ -20,10 +20,15 @@
         public DateTime CloseTime { get; set; }
 
         public string CandidateResumeJson { get; set; }
+
         // 🔹 Feedback integration
         public bool HasFeedback { get; set; }
         public int? FeedbackId { get; set; }
 
         public float Similarity { get; set; }
+
+        // 🔹 New properties for ratings
+        public int FeedbackCount { get; set; }
+        public double? AverageSentiment { get; set; }
     }
 }
