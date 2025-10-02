@@ -96,7 +96,7 @@ namespace DotnetMVCApp.Controllers
         {
             if (resumeFile == null || resumeFile.Length == 0)
             {
-                TempData["Error"] = "Please select a valid resume file.";
+                ViewData["Error"] = "Please select a valid resume file.";
                 return RedirectToAction("Dashboard", new { id = userId });
             }
 
@@ -113,7 +113,7 @@ namespace DotnetMVCApp.Controllers
                 var uploadResult = await _cloudinary.UploadAsync(uploadParams);
                 if (uploadResult.StatusCode != System.Net.HttpStatusCode.OK)
                 {
-                    TempData["Error"] = "Resume upload failed. Try again.";
+                    ViewData["Error"] = "Resume upload failed. Try again.";
                     return RedirectToAction("Dashboard", new { id = userId });
                 }
 
@@ -131,7 +131,7 @@ namespace DotnetMVCApp.Controllers
                 var response = await _httpClient.PostAsync("http://localhost:8000/parse-resume", form);
                 if (!response.IsSuccessStatusCode)
                 {
-                    TempData["Error"] = "Resume uploaded but parsing failed.";
+                    ViewData["Error"] = "Resume uploaded but parsing failed.";
                     return RedirectToAction("Dashboard", new { id = userId });
                 }
 
@@ -147,7 +147,7 @@ namespace DotnetMVCApp.Controllers
                 _unitOfWork.Save();
             }
 
-            TempData["Success"] = "Resume uploaded and parsed successfully!";
+            ViewData["Success"] = "Resume uploaded and parsed successfully!";
             return RedirectToAction("Dashboard", new { id = userId });
         }
 
@@ -349,11 +349,11 @@ namespace DotnetMVCApp.Controllers
             {
                 _unitOfWork.UserJobs.ApplyToJob(userId, id);
                 _unitOfWork.Save();
-                TempData["Message"] = "Applied successfully!";
+                ViewData["Message"] = "Applied successfully!";
             }
             else
             {
-                TempData["Message"] = "You have already applied for this job.";
+                ViewData["Message"] = "You have already applied for this job.";
             }
 
             return RedirectToAction("JobSearch");
@@ -381,7 +381,7 @@ namespace DotnetMVCApp.Controllers
             var user = _unitOfWork.Users.GetUserById(userId);
             if (user == null || string.IsNullOrEmpty(user.ExtractedInfo))
             {
-                TempData["Error"] = "No resume info found. Please upload your resume first.";
+                ViewData["Error"] = "No resume info found. Please upload your resume first.";
                 return RedirectToAction("Dashboard");
             }
 
@@ -394,7 +394,7 @@ namespace DotnetMVCApp.Controllers
 
             if (string.IsNullOrEmpty(candidateText))
             {
-                TempData["Error"] = "Cannot extract meaningful info from resume.";
+                ViewData["Error"] = "Cannot extract meaningful info from resume.";
                 return RedirectToAction("Dashboard");
             }
 
@@ -402,14 +402,14 @@ namespace DotnetMVCApp.Controllers
             var response = await _httpClient.PostAsJsonAsync("http://127.0.0.1:8000/embed", new { text = candidateText });
             if (!response.IsSuccessStatusCode)
             {
-                TempData["Error"] = "Embedding service failed.";
+                ViewData["Error"] = "Embedding service failed.";
                 return RedirectToAction("Dashboard");
             }
 
             var json = await response.Content.ReadFromJsonAsync<JobRepo.EmbedResponse>();
             if (json?.Embedding == null || json.Embedding.Length == 0)
             {
-                TempData["Error"] = "Embedding returned empty vector.";
+                ViewData["Error"] = "Embedding returned empty vector.";
                 return RedirectToAction("Dashboard");
             }
 
@@ -431,7 +431,7 @@ namespace DotnetMVCApp.Controllers
             var user = _unitOfWork.Users.GetUserById(userId);
             if (user == null || string.IsNullOrEmpty(user.ExtractedInfo))
             {
-                TempData["Error"] = "Please upload your resume first.";
+                ViewData["Error"] = "Please upload your resume first.";
                 return RedirectToAction("Dashboard");
             }
 
@@ -585,21 +585,21 @@ namespace DotnetMVCApp.Controllers
                 var user = _unitOfWork.Users.GetUserById(userId);
                 if (user == null)
                 {
-                    TempData["Error"] = "User not found.";
+                    ViewData["Error"] = "User not found.";
                     return RedirectToAction("Dashboard");
                 }
 
                 var job = _unitOfWork.Jobs.GetJobById(id);
                 if (job == null || string.IsNullOrWhiteSpace(job.JobDescription))
                 {
-                    TempData["Error"] = "No job description found for this job.";
+                    ViewData["Error"] = "No job description found for this job.";
                     return RedirectToAction("Dashboard");
                 }
 
                 var hasApplied = _unitOfWork.UserJobs.HasApplied(userId, id);
                 if (!hasApplied)
                 {
-                    TempData["Error"] = "You must apply for this job before attempting a mock interview.";
+                    ViewData["Error"] = "You must apply for this job before attempting a mock interview.";
                     return RedirectToAction("JobSearch");
                 }
 
@@ -609,7 +609,7 @@ namespace DotnetMVCApp.Controllers
                     var response = await httpClient.GetAsync(job.JobDescription);
                     if (!response.IsSuccessStatusCode)
                     {
-                        TempData["Error"] = "Failed to load job description.";
+                        ViewData["Error"] = "Failed to load job description.";
                         return RedirectToAction("Dashboard");
                     }
 
@@ -627,7 +627,7 @@ namespace DotnetMVCApp.Controllers
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Error loading mock interview: " + ex.Message;
+                ViewData["Error"] = "Error loading mock interview: " + ex.Message;
                 return RedirectToAction("Dashboard");
             }
         }

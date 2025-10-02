@@ -4,9 +4,9 @@
     <div class="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-2xl">
         <h2 class="text-2xl font-bold text-center text-white mb-6">Verify OTP 🔐</h2>
 
-        @if (TempData["Error"] != null)
+        @if (ViewData["Error"] != null)
         {
-            <div class="mb-4 text-red-400 text-center">@TempData["Error"]</div>
+            <div class="mb-4 text-red-400 text-center">@ViewData["Error"]</div>
         }
 
         <form asp-action="VerifyRegisterOtp" method="post" class="space-y-5">

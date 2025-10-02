@@ -4,6 +4,7 @@ using DotnetMVCApp.Attributes;
 using DotnetMVCApp.Data;
 using DotnetMVCApp.Models;
 using DotnetMVCApp.Repositories;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -73,7 +74,12 @@ var app = builder.Build();
 // ------------------- Middleware -------------------
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    // Unhandled exceptions (500 etc.)
+    app.UseExceptionHandler("/Error/500");
+
+    // Status codes like 404, 403, etc.
+    app.UseStatusCodePagesWithReExecute("/Error/{0}");
+
     app.UseHsts();
     // app.UseHttpsRedirection();
 }
@@ -91,5 +97,8 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// fallback route (no extra args allowed here)
+app.MapFallbackToController("HandleError", "Error");
 
 app.Run();

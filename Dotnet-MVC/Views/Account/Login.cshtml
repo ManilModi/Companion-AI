@@ -9,12 +9,12 @@
         <h2 class="text-2xl font-bold text-center text-white mb-6">Welcome Back 👋</h2>
 
         <!-- Display Success or Error -->
-        @* @if (TempData["Message"] != null)
+        @if (ViewData["Message"] != null)
         {
             <div class="text-green-400 text-center mb-4 font-medium">
-                @TempData["Message"]
+                @ViewData["Message"]
             </div>
-        } *@
+        }
 
         <form asp-action="Login" method="post" class="space-y-5">
             <!-- Email -->
@@ -37,13 +37,8 @@
                 <span asp-validation-for="Password" class="text-red-400 text-sm"></span>
             </div>
 
-            <!-- Remember Me / Forgot Password -->
-            <div class="flex items-center justify-between">
-                <label class="flex items-center space-x-2">
-                    <input asp-for="RememberMe" type="checkbox"
-                           class="rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500">
-                    <span class="text-sm text-gray-300">Remember me</span>
-                </label>
+            <!-- Forgot Password -->
+            <div class="flex justify-end mt-1">
                 <a asp-action="ForgotPassword" asp-controller="Account" class="text-sm font-medium text-indigo-400 hover:underline">
                     Forgot password?
                 </a>

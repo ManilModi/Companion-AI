@@ -1,0 +1,107 @@
+﻿@{
+    var code = ViewData["StatusCode"] ?? "Error";
+    var message = ViewData["Message"] ?? "Something went wrong.";
+    ViewData["Title"] = $"Error {code}";
+}
+
+<div class="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-hidden">
+
+    <!-- Animated glowing circles in background -->
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+    <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse delay-2000"></div>
+    <div class="absolute top-1/3 left-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-2xl opacity-20 animate-pulse"></div>
+
+    <!-- Main card -->
+    <div class="relative text-center p-10 max-w-lg bg-gray-900/90 rounded-3xl shadow-2xl backdrop-blur-md border border-gray-700 transform hover:scale-105 transition-transform duration-300">
+
+        <!-- Glitch neon error code -->
+        <h1 class="text-9xl font-extrabold text-red-500 glitch relative inline-block" data-text="@code">
+            @code
+        </h1>
+
+        <p class="mt-6 text-xl md:text-2xl text-gray-300">@message</p>
+
+        <!-- Call to action buttons -->
+        <div class="mt-8 flex justify-center gap-4">
+            <a asp-controller="Home" asp-action="Index"
+               class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-500 transition">
+                Go Back Home
+            </a>
+        </div>
+
+        <!-- Optional: small decorative text -->
+        <p class="mt-6 text-gray-400 text-sm">If the problem persists, contact support.</p>
+    </div>
+</div>
+
+<!-- Glitch Effect Styles -->
+<style>
+    .glitch::before, .glitch::after {
+        content: attr(data-text);
+        position: absolute;
+        left: 0;
+        right: 0;
+        overflow: hidden;
+        clip: rect(0, 900px, 0, 0);
+    }
+
+    .glitch::before {
+        animation: glitchTop 1.5s infinite linear alternate-reverse;
+        color: #ff00ff;
+    }
+
+    .glitch::after {
+        animation: glitchBottom 2s infinite linear alternate-reverse;
+        color: #00ffff;
+    }
+
+    @@keyframes glitchTop {
+        0% {
+            clip: rect(0, 9999px, 0, 0);
+        }
+
+        10% {
+            clip: rect(0, 9999px, 20%, 0);
+            transform: translate(-5px, -3px);
+        }
+
+        20% {
+            clip: rect(0, 9999px, 0, 0);
+        }
+
+        30% {
+            clip: rect(0, 9999px, 10%, 0);
+            transform: translate(3px, 2px);
+        }
+
+        40%, 100% {
+            clip: rect(0, 9999px, 0, 0);
+            transform: none;
+        }
+    }
+
+    @@keyframes glitchBottom {
+        0% {
+            clip: rect(100%, 9999px, 100%, 0);
+        }
+
+        10% {
+            clip: rect(70%, 9999px, 100%, 0);
+            transform: translate(5px, 3px);
+        }
+
+        20% {
+            clip: rect(100%, 9999px, 100%, 0);
+        }
+
+        30% {
+            clip: rect(80%, 9999px, 100%, 0);
+            transform: translate(-3px, -2px);
+        }
+
+        40%, 100% {
+            clip: rect(100%, 9999px, 100%, 0);
+            transform: none;
+        }
+    }
+</style>

@@ -118,7 +118,7 @@ namespace DotnetMVCApp.Controllers
         {
             if (HttpContext.Session.GetString("RegisterOtp") == null)
             {
-                TempData["Error"] = "Please register first.";
+                ViewData["Error"] = "Please register first.";
                 return RedirectToAction("Register");
             }
 
@@ -142,19 +142,19 @@ namespace DotnetMVCApp.Controllers
 
             if (storedOtp == null || expiryString == null || userData == null)
             {
-                TempData["Error"] = "OTP expired. Please register again.";
+                ViewData["Error"] = "OTP expired. Please register again.";
                 return RedirectToAction("Register");
             }
 
             if (DateTime.UtcNow > DateTime.Parse(expiryString))
             {
-                TempData["Error"] = "OTP expired. Please register again.";
+                ViewData["Error"] = "OTP expired. Please register again.";
                 return RedirectToAction("Register");
             }
 
             if (model.OTP != storedOtp)
             {
-                TempData["Error"] = "Invalid OTP.";
+                ViewData["Error"] = "Invalid OTP.";
                 return View(model);
             }
 
@@ -274,7 +274,7 @@ namespace DotnetMVCApp.Controllers
         {
             if (HttpContext.Session.GetString("LoginOtp") == null)
             {
-                TempData["Error"] = "Please log in first.";
+                ViewData["Error"] = "Please log in first.";
                 return RedirectToAction("Login");
             }
             return View(new ForgotPasswordViewModel());
@@ -289,19 +289,19 @@ namespace DotnetMVCApp.Controllers
 
             if (storedOtp == null || userIdStr == null || expiryString == null)
             {
-                TempData["Error"] = "OTP expired. Try logging in again.";
+                ViewData["Error"] = "OTP expired. Try logging in again.";
                 return RedirectToAction("Login");
             }
 
             if (DateTime.UtcNow > DateTime.Parse(expiryString))
             {
-                TempData["Error"] = "OTP expired. Try logging in again.";
+                ViewData["Error"] = "OTP expired. Try logging in again.";
                 return RedirectToAction("Login");
             }
 
             if (model.OTP != storedOtp)
             {
-                TempData["Error"] = "Invalid OTP.";
+                ViewData["Error"] = "Invalid OTP.";
                 return View(model);
             }
 
@@ -398,7 +398,7 @@ namespace DotnetMVCApp.Controllers
         {
             if (HttpContext.Session.GetString("ForgotPasswordOtp") == null)
             {
-                TempData["Error"] = "Please request an OTP first.";
+                ViewData["Error"] = "Please request an OTP first.";
                 return RedirectToAction("ForgotPassword");
             }
             return View(new ForgotPasswordViewModel());
@@ -413,25 +413,25 @@ namespace DotnetMVCApp.Controllers
 
             if (storedOtp == null || email == null || expiryString == null)
             {
-                TempData["Error"] = "OTP session expired. Try again.";
+                ViewData["Error"] = "OTP session expired. Try again.";
                 return View(model);
             }
 
             if (DateTime.UtcNow > DateTime.Parse(expiryString))
             {
-                TempData["Error"] = "OTP expired. Request a new one.";
+                ViewData["Error"] = "OTP expired. Request a new one.";
                 return View(model);
             }
 
             if (model.OTP != storedOtp)
             {
-                TempData["Error"] = "Invalid OTP.";
+                ViewData["Error"] = "Invalid OTP.";
                 return View(model);
             }
 
             HttpContext.Session.Remove("ForgotPasswordOtp");
             HttpContext.Session.Remove("OtpExpiry");
-            TempData["Email"] = email;
+            ViewData["Email"] = email;
 
             return RedirectToAction("ResetPassword", new { email });
         }
@@ -469,13 +469,13 @@ namespace DotnetMVCApp.Controllers
             _userRepo.Update(user);
 
             HttpContext.Session.Remove("ForgotPasswordEmail");
-            TempData["Message"] = "Password reset successfully! You can now log in.";
+            ViewData["Message"] = "Password reset successfully! You can now log in.";
             return RedirectToAction("Login");
         }
 
         // ---------------- Update User ----------------
         [HttpGet]
-        [Authorize(Roles = "HR,Candidate")]
+        [SessionAuthorize("HR,Candidate", idParameterName: "id")]
         public IActionResult UpdateUser(int id)
         {
             var user = _userRepo.GetUserById(id);
@@ -492,7 +492,7 @@ namespace DotnetMVCApp.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "HR,Candidate")]
+        [SessionAuthorize("HR,Candidate")]
         public async Task<IActionResult> UpdateUser(UpdateUserViewModel model)
         {
             if (string.IsNullOrEmpty(model.NewPassword))
@@ -547,7 +547,7 @@ namespace DotnetMVCApp.Controllers
                 // Only username changed -> update directly
                 user.Username = model.Username;
                 _userRepo.Update(user);
-                TempData["Message"] = "Profile updated successfully!";
+                ViewData["Message"] = "Profile updated successfully!";
 
                 return Json(new { redirectUrl = Url.Action("Profile", new { id = user.UserId }) });
             }
@@ -560,7 +560,7 @@ namespace DotnetMVCApp.Controllers
         {
             if (HttpContext.Session.GetString("UpdateUserOtp") == null)
             {
-                TempData["Error"] = "No update in progress.";
+                ViewData["Error"] = "No update in progress.";
                 return RedirectToAction("Profile");
             }
             return View(new ForgotPasswordViewModel()); // simple OTP input
@@ -576,7 +576,7 @@ namespace DotnetMVCApp.Controllers
 
             if (string.IsNullOrEmpty(storedOtp) || string.IsNullOrEmpty(expiryString) || string.IsNullOrEmpty(userData))
             {
-                TempData["Error"] = "OTP session expired. Please try updating your profile again.";
+                ViewData["Error"] = "OTP session expired. Please try updating your profile again.";
                 return RedirectToAction("Profile");
             }
 
@@ -586,7 +586,7 @@ namespace DotnetMVCApp.Controllers
                 HttpContext.Session.Remove("PendingUpdateUser");
                 HttpContext.Session.Remove("UpdateOtpExpiry");
 
-                TempData["Error"] = "OTP expired. Please try updating your profile again.";
+                ViewData["Error"] = "OTP expired. Please try updating your profile again.";
                 return RedirectToAction("Profile");
             }
 
@@ -600,7 +600,7 @@ namespace DotnetMVCApp.Controllers
             var user = _userRepo.GetUserById(updateModel.UserId);
             if (user == null)
             {
-                TempData["Error"] = "User not found.";
+                ViewData["Error"] = "User not found.";
                 return RedirectToAction("Profile");
             }
 
@@ -643,14 +643,14 @@ namespace DotnetMVCApp.Controllers
             HttpContext.Session.Remove("PendingUpdateUser");
             HttpContext.Session.Remove("UpdateOtpExpiry");
 
-            TempData["Message"] = "Profile updated successfully!";
+            ViewData["Message"] = "Profile updated successfully!";
             return RedirectToAction("Profile", new { id = user.UserId });
         }
 
 
         // ---------------- Delete User ----------------
         [HttpPost]
-        [Authorize(Roles = "HR,Candidate")]
+        [SessionAuthorize("HR,Candidate")]
         public async Task<IActionResult> DeleteUser()
         {
             var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -668,28 +668,25 @@ namespace DotnetMVCApp.Controllers
             HttpContext.Session.Clear();
             await HttpContext.SignOutAsync("MyCookieAuth");
 
-            TempData["Message"] = "Your account has been deleted successfully.";
+            ViewData["Message"] = "Your account has been deleted successfully.";
             return RedirectToAction("Index", "Home");
         }
 
-        //------search user profile------
         [HttpGet]
-        [Authorize(Roles = "HR,Candidate")]
-        public IActionResult Profile(int? id)
+        [SessionAuthorize("HR,Candidate")]
+        public IActionResult Profile()
         {
-            // If no ID is provided, use logged-in user's ID
-            if (id == null)
+            // Get logged-in user's ID
+            var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (loggedInUserId == null)
             {
-                var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (loggedInUserId == null)
-                {
-                    TempData["Error"] = "Please log in first.";
-                    return RedirectToAction("Login");
-                }
-                id = int.Parse(loggedInUserId);
+                TempData["Error"] = "Please log in first.";
+                return RedirectToAction("Login");
             }
 
-            var user = _userRepo.GetUserById(id.Value);
+            int currentUserId = int.Parse(loggedInUserId);
+
+            var user = _userRepo.GetUserById(currentUserId);
             if (user == null)
             {
                 TempData["Error"] = "User not found.";
@@ -704,7 +701,13 @@ namespace DotnetMVCApp.Controllers
                 Email = user.Email
             };
 
-            return View(model);
+            return View("Profile", model);
+        }
+
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            return View();
         }
 
     }
