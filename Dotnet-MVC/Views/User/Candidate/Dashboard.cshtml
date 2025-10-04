@@ -3,17 +3,12 @@
     Layout = "~/Views/Shared/_CandidateLayout.cshtml";
 }
 
-<div class="flex min-h-screen bg-gray-900 text-white">
-    <!-- Main Content -->
-    <div class="flex-1 p-8">
-        <!-- Top Bar (only name now) -->
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold">@Model.Name</h1>
-        </div>
+<div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold">@Model.Name</h1>
+</div>
 
 @if (string.IsNullOrEmpty(Model.ResumeUrl))
 {
-    <!-- Upload Resume Form -->
     <div class="bg-gray-800 rounded-2xl p-6 text-center">
         <h2 class="text-xl font-semibold mb-4">Upload Your Resume</h2>
         <form asp-controller="Candidate" asp-action="UploadResume" method="post" enctype="multipart/form-data">
@@ -34,14 +29,12 @@
 }
 else
 {
-    <!-- Profile & Skills -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Profile Card -->
+
         <div class="bg-gray-800 rounded-2xl p-6 flex flex-col items-center">
             <div class="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-3xl font-bold uppercase">
                 @(string.IsNullOrEmpty(Model.Name) ? "" : Model.Name.Substring(0, 1))
             </div>
-
             <h2 class="mt-4 text-xl font-semibold">@Model.Name</h2>
             <p class="mt-2 text-gray-400">@Model.Email</p>
             @if (!string.IsNullOrEmpty(Model.ContactNo))
@@ -55,30 +48,32 @@ else
                 </a>
             }
 
-            <div class="mt-6 flex justify-center w-full">
+            <div class="mt-6 w-full space-y-4">
+
                 <a asp-controller="Candidate" asp-action="DownloadResume" asp-route-userId="@Model.UserId"
-                   class="px-6 py-2 bg-indigo-600 rounded-xl hover:bg-indigo-500 transition">
+                   class="block w-full text-center px-6 py-2 bg-indigo-600 rounded-xl hover:bg-indigo-500 transition">
                     Download Resume
                 </a>
+
+                <form asp-controller="Candidate" asp-action="UploadResume" method="post" enctype="multipart/form-data" class="w-full">
+                    <input type="hidden" name="userId" value="@Model.UserId" />
+
+                    <div class="flex justify-center items-center gap-x-3">
+                        <label class="cursor-pointer px-6 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition whitespace-nowrap">
+                            Choose File
+                            <input type="file" name="resumeFile" accept=".pdf,.doc,.docx" class="hidden"
+                                   onchange="document.getElementById('updateResumeFileName').innerText=this.files[0]?.name || 'No file chosen'" />
+                        </label>
+                        <button type="submit" class="px-6 py-2 bg-yellow-600 rounded-xl hover:bg-yellow-500 transition whitespace-nowrap">
+                            Update Resume
+                        </button>
+                    </div>
+
+                    <div id="updateResumeFileName" class="mt-2 text-center text-gray-400 text-sm truncate">No file chosen</div>
+                </form>
             </div>
-
-            <form asp-controller="Candidate" asp-action="UploadResume" method="post" enctype="multipart/form-data" class="mt-4 w-full text-center">
-                <input type="hidden" name="userId" value="@Model.UserId" />
-
-                <label class="cursor-pointer inline-block px-6 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition">
-                    Choose File
-                    <input type="file" name="resumeFile" accept=".pdf,.doc,.docx" class="hidden"
-                           onchange="document.getElementById('updateResumeFileName').innerText=this.files[0]?.name || 'No file chosen'" />
-                </label>
-                <span id="updateResumeFileName" class="ml-2 text-gray-400 text-sm">No file chosen</span>
-
-                <button type="submit" class="ml-4 px-6 py-2 bg-yellow-600 rounded-xl hover:bg-yellow-500 transition">
-                    Update Resume
-                </button>
-            </form>
         </div>
 
-        <!-- Skills & Experience -->
         <div class="md:col-span-2 bg-gray-800 rounded-2xl p-6">
             <h3 class="text-lg font-semibold mb-4">Skills</h3>
             <div class="flex flex-wrap gap-2">
@@ -104,7 +99,6 @@ else
         </div>
     </div>
 
-    <!-- Projects & Achievements -->
     <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-gray-800 rounded-2xl p-6">
             <h3 class="text-lg font-semibold mb-4">Projects</h3>
