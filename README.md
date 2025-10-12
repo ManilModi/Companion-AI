@@ -104,24 +104,9 @@ Companion-AI/
 - Optional: NuGet CLI for restoring packages
 - PostgreSQL database
 
-### DotNet-MVC Setup
-
-```bash
-cd website
-# 🚀 Setting Up .NET MVC App
-
-## Prerequisites
-
-* .NET SDK 7.0+ (or the version your project targets)
-* Visual Studio 2022+ (or VS Code with C# extension)
-* PostgreSQL
-* Optional: NuGet CLI for restoring packages
-
----
-
-## Steps
-
 ### 1. Clone the repository
+
+### DotNet-MVC Setup
 
 ```bash
 cd Dotnet-MVC
@@ -198,7 +183,7 @@ dotnet run
 ### Backend Setup
 
 ```bash
-cd python-backend
+cd "Python Backend"
 pip install -r requirements.txt
 cp .env.example .env
 python main.py
@@ -207,7 +192,7 @@ python main.py
 ### Environment Variables
 
 #### DotNet (Appsetting.json)
-```Appsetting.json
+```env
 SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SENDER_NAME=your_sender_name
@@ -272,6 +257,28 @@ Advanced analytics platform providing market trends, salary insights, and career
 - Skills demand forecasting
 - Industry growth trends
 - Personalized career recommendations
+
+## 👥 Contributors
+
+### **Manil Modi**
+- Built the **Candidate Panel** to streamline job-seeker interactions and profile management.
+- Implemented **Semantic Job Search** for accurate and intelligent job matching.
+- Developed features for:
+  - 🧠 **AI-powered Mock Interviews** to help candidates prepare effectively
+  - 🎯 **Personalized Job Recommendations**
+  - 🌍 **Global Job Search** capabilities
+  - 📊 **Data Analysis** on last year's trends to highlight in-demand roles
+
+### **Kuldeepsinh Dabhi**
+- Built the **HR Panel** for streamlined recruitment and employee workflows.
+- Set up **Cloudinary** for secure and scalable media storage.
+- Implemented **Feedback Management** to collect and organize user input.
+
+### **Deep Prajapati**
+- Engineered **Feedback Sentiment Analysis** to extract insights from user reviews.
+- Developed **Session and Cookie-based Authentication** with:
+  - 🔐 SMTP-based OTP verification for login, registration, and sensitive data changes
+  - ⚠️ Error handling for HTTP status codes: **403**, **404**, and **401** , etc.
 
 ## 🤝 Contributing
 
