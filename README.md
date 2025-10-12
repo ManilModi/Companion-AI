@@ -1,4 +1,4 @@
-# Companion-AI - AI-Powered Hiring Platform
+# Companion-AI - Revolutionize your hiring process
 
 Revolutionize your hiring process with AI-powered recruitment solutions that streamline talent acquisition and help companies find the best candidates faster.
 
@@ -43,7 +43,6 @@ Revolutionize your hiring process with AI-powered recruitment solutions that str
 
 ### Database
 - **PostgreSQL** – Primary relational database
-- **Pgvector Extension** – For semantic search and AI integrations
 
 ### Architecture & Design
 - **Layered Architecture (MVC + Service + Repository)** – Clean separation of concerns
@@ -58,15 +57,18 @@ Revolutionize your hiring process with AI-powered recruitment solutions that str
 - **EF Core Migrations** – Database schema evolution
 
 ### AI & Extensions
-- **Pgvector + EF Core Integration** – Enables vector embeddings for AI search
+- **Enables vector embeddings** - Semantic search
 - **Cloudinary Integration** – Smart asset handling for resumes and documents
-- **Scoring & Analysis Services (Pluggable)** – Extendable for AI-powered candidate ranking
+- **Scoring & Analysis Services (Pluggable)** – Extendable for AI-powered candidate ranking using Langgraph + Langchain
 
 ### AI/ML Components
-- **Resume Parsing**: Text extraction from PDF/images using OCR
-- **Skill Matching**: Cosine similarity with TF-IDF vectorization
-- **Job Recommendations**: ML-based career guidance system
+- **Resume Parsing**: Text extraction from PDF/images using OCR and langgraph
+- **Skill Matching**: Cosine similarity with Transformer
+- **Job Recommendations**: NLP-based career guidance system
 - **Scoring Algorithms**: Multi-factor candidate evaluation
+- **AI-based Mock Interview system**: Analysis of answered questions, Video and Audio using Mediapipe and Librosa
+- **Personalized Career Post**: Posts using Serper API
+
 
 ## 📁 Project Structure
 
@@ -98,7 +100,7 @@ Companion-AI/
 ## 🚦 Getting Started
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.9+
 - .NET SDK 7.0+ (or the version your project targets)
 - Visual Studio 2022+ (or VS Code with C# extension)
 - Optional: NuGet CLI for restoring packages
@@ -237,17 +239,19 @@ Advanced analytics platform providing market trends, salary insights, and career
 
 ### Candidate
 - Browse job opportunities
-- Take skill assessments
+- Take skill assessments using mock interviews
 - Submit applications
 - Track application status
 - Access career insights
+- Give feedback on jobs
+- Get Personalized career posts
 
 ## 🔒 Security Features
 
 - Multi-factor authentication via SMTP OTP based
 - Role-based access control
 - Secure file upload handling
-- Data encryption and privacy protection (using sha256 with salting for password storing)
+- Data encryption and privacy protection (using SHA256 with salting for password storing)
 - CORS and security middleware
 
 ## 📊 Analytics & Insights
@@ -294,7 +298,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and questions:
-- Email: deepcoding15@gmail.com
+- Email: companionai.org@gmail.com
 
 ## 🏆 Acknowledgments
 
